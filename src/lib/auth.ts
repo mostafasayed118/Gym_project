@@ -19,7 +19,7 @@ export function useUserRole() {
   //   import { api } from "../../convex/_generated/api";
   //   useQuery(api.auth.getUserByClerkId, { clerkId: clerkUser.id })
   const convexUser = useQuery(
-    "auth:getUserByClerkId" as FunctionReference<"query">,
+    "auth:getUserByClerkId" as unknown as FunctionReference<"query">,
     clerkUser?.id ? { clerkId: clerkUser.id } : "skip",
   );
 

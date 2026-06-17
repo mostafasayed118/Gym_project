@@ -4,18 +4,13 @@ import { ConvexHttpClient } from "convex/browser";
 import { z } from "zod";
 
 // ─── Env ────────────────────────────────────────────────────────────
-const CLERK_WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET!;
-const CONVEX_URL = process.env.NEXT_PUBLIC_CONVEX_URL!;
-
-if (!CLERK_WEBHOOK_SECRET) {
-  throw new Error("CLERK_WEBHOOK_SECRET is not set");
+function getEnvOrThrow(name: string): string {
+  const value = process.env[name];
+  if (!value) throw new Error(`${name} is not set`);
+  return value;
 }
 
-if (!CONVEX_URL) {
-  throw new Error("NEXT_PUBLIC_CONVEX_URL is not set");
-}
-
-const convex = new ConvexHttpClient(CONVEX_URL);
+const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL ?? "");
 
 // ─── Zod schemas for idempotent payload validation ──────────────────
 
@@ -103,7 +98,7 @@ export async function POST(request: Request): Promise<Response> {
 
   const body = await request.text();
 
-  const wh = new Webhook(CLERK_WEBHOOK_SECRET);
+  const wh = new Webhook(getEnvOrThrow("CLERK_WEBHOOK_SECRET"));
   let evt: { type: string; data: unknown };
 
   try {

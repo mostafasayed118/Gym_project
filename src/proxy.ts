@@ -14,9 +14,9 @@ const isPublicRoute = createRouteMatcher([
 const isCoachRoute = createRouteMatcher(["/coach(.*)"]);
 const isAdminRoute = createRouteMatcher(["/admin(.*)"]);
 
-// ─── Middleware ──────────────────────────────────────────────────────
+// ─── Proxy (replaces deprecated middleware) ─────────────────────────
 
-export default clerkMiddleware(async (auth, req) => {
+export const proxy = clerkMiddleware(async (auth, req) => {
   const authObject = await auth();
 
   // Public routes bypass auth entirely
