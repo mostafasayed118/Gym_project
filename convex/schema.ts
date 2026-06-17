@@ -41,6 +41,17 @@ export default defineSchema({
     .index("by_clientId", ["clientId"])
     .index("by_status", ["status"]),
 
+  planItems: defineTable({
+    planId: v.id("plans"),
+    dayOfWeek: v.string(),
+    exerciseName: v.string(),
+    targetSets: v.number(),
+    targetReps: v.number(),
+    targetWeight: v.number(),
+  })
+    .index("by_planId", ["planId"])
+    .index("by_planId_dayOfWeek", ["planId", "dayOfWeek"]),
+
   sessions: defineTable({
     clientId: v.id("users"),
     coachId: v.id("users"),
@@ -65,6 +76,19 @@ export default defineSchema({
     .index("by_coachId", ["coachId"])
     .index("by_planId", ["planId"])
     .index("by_date", ["date"]),
+
+  sessionSets: defineTable({
+    sessionId: v.id("sessions"),
+    exerciseName: v.string(),
+    setIndex: v.number(),
+    targetWeight: v.number(),
+    targetReps: v.number(),
+    actualWeight: v.number(),
+    actualReps: v.number(),
+    completedAt: v.number(),
+  })
+    .index("by_sessionId", ["sessionId"])
+    .index("by_sessionId_exerciseName", ["sessionId", "exerciseName"]),
 
   progress: defineTable({
     clientId: v.id("users"),

@@ -25,13 +25,13 @@ export const getCoachView = query({
   handler: async (ctx, args) => {
     const clients = await ctx.db
       .query("users")
-      .withIndex("by_role", (q) => q.eq("role", "client"))
+      .withIndex("by_coachId", (q) => q.eq("coachId", args.coachId))
       .collect();
 
     const clientIds = clients.map((c) => c._id);
 
-    const progress = await ctx.db.query("progress").collect();
-    return progress.filter((p) => clientIds.includes(p.clientId));
+    const allProgress = await ctx.db.query("progress").collect();
+    return allProgress.filter((p) => clientIds.includes(p.clientId));
   },
 });
 

@@ -2,7 +2,7 @@
 
 import { useUser } from "@clerk/nextjs";
 import { useQuery } from "convex/react";
-import type { FunctionReference } from "convex/server";
+import { api } from "@convex/_generated/api";
 
 export type UserRole = "admin" | "coach" | "user";
 
@@ -15,25 +15,20 @@ export type UserRole = "admin" | "coach" | "user";
 export function useUserRole() {
   const { user: clerkUser, isLoaded: clerkLoaded } = useUser();
 
-  // After `npx convex dev`, replace this with:
-  //   import { api } from "../../convex/_generated/api";
-  //   useQuery(api.auth.getUserByClerkId, { clerkId: clerkUser.id })
   const convexUser = useQuery(
-    "auth:getUserByClerkId" as unknown as FunctionReference<"query">,
+    api.auth.getUserByClerkId,
     clerkUser?.id ? { clerkId: clerkUser.id } : "skip",
   );
 
   const isLoading = !clerkLoaded || convexUser === undefined;
-  const role: UserRole | null = (convexUser as Record<string, unknown> | null)?.role as UserRole | null;
-  const userId: string | null = (convexUser as Record<string, unknown> | null)?._id as string | null;
 
   return {
-    role,
-    userId,
+    role: (convexUser?.role as UserRole | undefined) ?? null,
+    userId: convexUser?._id ?? null,
     isLoading,
-    isCoach: role === "coach",
-    isAdmin: role === "admin",
-    isUser: role === "user",
+    isCoach: convexUser?.role === "coach",
+    isAdmin: convexUser?.role === "admin",
+    isUser: convexUser?.role === "user",
   };
 }
 

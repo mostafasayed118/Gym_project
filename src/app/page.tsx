@@ -34,8 +34,8 @@ export default async function HomePage() {
         </div>
       ) : (
         <div className="flex gap-4">
-          <SignIn />
-          <SignUp />
+          <SignIn routing="hash" />
+          <SignUp routing="hash" />
         </div>
       )}
     </main>

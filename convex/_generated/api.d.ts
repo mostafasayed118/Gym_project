@@ -8,53 +8,50 @@
  * @module
  */
 
+import type * as auth from "../auth.js";
+import type * as plans from "../plans.js";
+import type * as progress from "../progress.js";
+import type * as sessions from "../sessions.js";
+import type * as users from "../users.js";
+
 import type {
   ApiFromModules,
   FilterApi,
   FunctionReference,
 } from "convex/server";
 
+declare const fullApi: ApiFromModules<{
+  auth: typeof auth;
+  plans: typeof plans;
+  progress: typeof progress;
+  sessions: typeof sessions;
+  users: typeof users;
+}>;
+
 /**
- * A utility for referencing Convex functions in your app's API.
+ * A utility for referencing Convex functions in your app's public API.
  *
  * Usage:
  * ```js
  * const myFunctionReference = api.myModule.myFunction;
  * ```
  */
-declare const fullApi: ApiFromModules<{
-  auth: {
-    getUserId: FunctionReference<"query", "public">;
-    getUserByClerkId: FunctionReference<"query", "public">;
-    requireRole: FunctionReference<"query", "public">;
-    syncUser: FunctionReference<"mutation", "public">;
-    updateRole: FunctionReference<"mutation", "public">;
-    assignCoach: FunctionReference<"mutation", "public">;
-    deleteUser: FunctionReference<"mutation", "public">;
-    listCoaches: FunctionReference<"query", "public">;
-    listClients: FunctionReference<"query", "public">;
-  };
-  plans: {
-    list: FunctionReference<"query", "public">;
-    getByClient: FunctionReference<"query", "public">;
-    getByCoach: FunctionReference<"query", "public">;
-    create: FunctionReference<"mutation", "public">;
-    update: FunctionReference<"mutation", "public">;
-  };
-  sessions: {
-    list: FunctionReference<"query", "public">;
-    getByClient: FunctionReference<"query", "public">;
-    getByDate: FunctionReference<"query", "public">;
-    create: FunctionReference<"mutation", "public">;
-    complete: FunctionReference<"mutation", "public">;
-  };
-  progress: {
-    list: FunctionReference<"query", "public">;
-    getByClient: FunctionReference<"query", "public">;
-    getCoachView: FunctionReference<"query", "public">;
-    create: FunctionReference<"mutation", "public">;
-  };
-}>;
+export declare const api: FilterApi<
+  typeof fullApi,
+  FunctionReference<any, "public">
+>;
 
-export declare const api: FilterApi<typeof fullApi, FunctionReference<any, "public">>;
-export declare const internal: FilterApi<typeof fullApi, FunctionReference<any, "internal">>;
+/**
+ * A utility for referencing Convex functions in your app's internal API.
+ *
+ * Usage:
+ * ```js
+ * const myFunctionReference = internal.myModule.myFunction;
+ * ```
+ */
+export declare const internal: FilterApi<
+  typeof fullApi,
+  FunctionReference<any, "internal">
+>;
+
+export declare const components: {};
