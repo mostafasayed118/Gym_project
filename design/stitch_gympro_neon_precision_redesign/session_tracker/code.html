@@ -1,0 +1,389 @@
+<!DOCTYPE html><html class="dark" lang="en" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>GymPro | Active Session Tracker</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<style>
+        @import url('https://fonts.googleapis.com/css2?family=Geist+Mono:wght@100..900&family=Geist:wght@100..900&display=swap');
+        
+        body {
+            font-family: 'Geist Sans', sans-serif;
+            background-color: #111508;
+            color: #e2e4cf;
+            overflow-x: hidden;
+        }
+
+        .glass-panel {
+            background: rgba(9, 9, 11, 0.5);
+            backdrop-filter: blur(24px);
+            border: 1px solid rgba(68, 73, 51, 0.2);
+        }
+
+        .neon-glow {
+            box-shadow: 0 0 20px rgba(171, 214, 0, 0.3);
+        }
+
+        .active-glow {
+            box-shadow: 0 0 40px rgba(171, 214, 0, 0.15);
+        }
+
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+
+        .gradient-primary {
+            background: linear-gradient(45deg, #abd600, #00dce5);
+        }
+
+        /* Custom scrollbar for technical look */
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #111508;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #333627;
+            border-radius: 10px;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "secondary-fixed": "#63f7ff",
+                        "tertiary-container": "#d2e5f5",
+                        "error": "#ffb4ab",
+                        "on-tertiary-fixed": "#0b1d29",
+                        "inverse-on-surface": "#2f3223",
+                        "inverse-surface": "#e2e4cf",
+                        "background": "#111508",
+                        "on-surface": "#e2e4cf",
+                        "tertiary-fixed": "#d2e5f5",
+                        "surface-dim": "#111508",
+                        "on-background": "#e2e4cf",
+                        "on-tertiary-fixed-variant": "#374956",
+                        "on-primary-fixed": "#161e00",
+                        "surface-container-lowest": "#0c0f04",
+                        "surface-container-highest": "#333627",
+                        "primary": "#ffffff",
+                        "on-secondary-container": "#006c71",
+                        "surface-bright": "#373b2c",
+                        "surface-container-low": "#1a1d10",
+                        "primary-fixed-dim": "#abd600",
+                        "surface-variant": "#333627",
+                        "surface": "#111508",
+                        "outline": "#8e9379",
+                        "tertiary-fixed-dim": "#b6c9d8",
+                        "tertiary": "#ffffff",
+                        "on-error-container": "#ffdad6",
+                        "primary-container": "#c3f400",
+                        "on-surface-variant": "#c4c9ac",
+                        "surface-container": "#1e2113",
+                        "on-secondary-fixed": "#002021",
+                        "on-secondary": "#003739",
+                        "outline-variant": "#444933",
+                        "error-container": "#93000a",
+                        "on-primary-fixed-variant": "#3c4d00",
+                        "on-error": "#690005",
+                        "on-tertiary-container": "#556774",
+                        "secondary": "#e6feff",
+                        "secondary-fixed-dim": "#00dce5",
+                        "on-primary-container": "#556d00",
+                        "on-primary": "#283500",
+                        "inverse-primary": "#506600",
+                        "surface-tint": "#abd600",
+                        "surface-container-high": "#282b1d",
+                        "secondary-container": "#00f4fe",
+                        "on-tertiary": "#21323e",
+                        "primary-fixed": "#c3f400",
+                        "on-secondary-fixed-variant": "#004f53"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "stack-sm": "8px",
+                        "container-max": "1280px",
+                        "gutter": "24px",
+                        "margin-desktop": "48px",
+                        "stack-md": "16px",
+                        "margin-mobile": "20px",
+                        "stack-lg": "32px"
+                    },
+                    "fontFamily": {
+                        "headline-lg": ["Geist Sans"],
+                        "display-h1": ["Geist Sans"],
+                        "label-caps": ["Geist Mono"],
+                        "body-md": ["Geist Sans"],
+                        "metric-lg": ["Geist Mono"],
+                        "metric-sm": ["Geist Mono"]
+                    },
+                    "fontSize": {
+                        "headline-lg": ["32px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                        "display-h1": ["72px", {"lineHeight": "1.1", "letterSpacing": "-0.04em", "fontWeight": "700"}],
+                        "label-caps": ["12px", {"lineHeight": "1", "letterSpacing": "0.1em", "fontWeight": "600"}],
+                        "body-md": ["16px", {"lineHeight": "1.6", "letterSpacing": "0em", "fontWeight": "400"}],
+                        "metric-lg": ["24px", {"lineHeight": "1", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                        "metric-sm": ["14px", {"lineHeight": "1", "letterSpacing": "0.02em", "fontWeight": "500"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style data-extension-injected="absolute-mode" data-cleanup-id="absolute-mode-styles" type="text/css">* {<br>        -webkit-user-select: text !important;<br>        -moz-user-select: text !important;<br>        -ms-user-select: text !important;<br>         user-select: text !important;<br>    }</style><style data-extension-injected="absolute-mode" data-cleanup-id="absolute-mode-styles" type="text/css">* {<br>        -webkit-user-select: text !important;<br>        -moz-user-select: text !important;<br>        -ms-user-select: text !important;<br>         user-select: text !important;<br>    }</style><style data-extension-injected="absolute-mode" data-cleanup-id="absolute-mode-styles" type="text/css">* {<br>        -webkit-user-select: text !important;<br>        -moz-user-select: text !important;<br>        -ms-user-select: text !important;<br>         user-select: text !important;<br>    }</style><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@100..900&amp;family=Geist:wght@100..900&amp;display=swap" data-snapdom="injected-import"></head>
+<body class="bg-background text-on-surface">
+<!-- Sidebar shell -->
+<aside class="fixed left-0 top-0 h-screen w-[240px] bg-surface-container-lowest/50 backdrop-blur-2xl border-r border-outline-variant/10 flex flex-col py-stack-lg z-50">
+<div class="px-6 mb-10">
+<h1 class="font-headline-lg text-headline-lg font-black text-primary-fixed tracking-tighter">GymPro</h1>
+<p class="font-label-caps text-[10px] text-on-surface-variant/60 tracking-widest uppercase">Elite Performance</p>
+</div>
+<nav class="flex-1 px-4 space-y-2">
+<div class="flex items-center gap-stack-md text-on-surface-variant px-4 py-3 hover:bg-surface-variant/50 hover:text-primary transition-all cursor-pointer rounded-lg">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-label-caps text-label-caps">Dashboard</span>
+</div>
+<div class="flex items-center gap-stack-md bg-primary-container text-on-primary-container rounded-lg px-4 py-3 shadow-[0_0_20px_rgba(171,214,0,0.3)] transition-all cursor-pointer">
+<span class="material-symbols-outlined">fitness_center</span>
+<span class="font-label-caps text-label-caps">Workouts</span>
+</div>
+<div class="flex items-center gap-stack-md text-on-surface-variant px-4 py-3 hover:bg-surface-variant/50 hover:text-primary transition-all cursor-pointer rounded-lg">
+<span class="material-symbols-outlined">timer</span>
+<span class="font-label-caps text-label-caps">Sessions</span>
+</div>
+<div class="flex items-center gap-stack-md text-on-surface-variant px-4 py-3 hover:bg-surface-variant/50 hover:text-primary transition-all cursor-pointer rounded-lg">
+<span class="material-symbols-outlined">psychology</span>
+<span class="font-label-caps text-label-caps">Coach</span>
+</div>
+</nav>
+<div class="px-4 mt-auto">
+<div class="flex items-center gap-stack-md text-on-surface-variant px-4 py-3 hover:bg-surface-variant/50 hover:text-primary transition-all cursor-pointer rounded-lg">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-label-caps text-label-caps">Profile Settings</span>
+</div>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="ml-[240px] relative min-h-screen flex flex-col">
+<!-- Background Animation Overlay -->
+
+<!-- HEADER -->
+<header class="sticky top-0 z-40 h-[72px] w-full bg-surface/50 backdrop-blur-2xl border-b border-outline-variant/10 flex items-center justify-between px-gutter">
+<div class="flex items-center gap-4">
+<button class="p-2 hover:bg-surface-variant rounded-full transition-colors">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<div>
+<h2 class="font-headline-lg text-[20px] font-bold">Active Session</h2>
+<p class="font-label-caps text-[12px] text-on-surface-variant uppercase">3 of 12 sets</p>
+</div>
+</div>
+<div class="text-right">
+<div class="font-metric-lg text-primary text-[28px] font-bold tabular-nums">51:40</div>
+<div class="font-label-caps text-[10px] text-on-surface-variant tracking-widest text-right">ELAPSED TIME</div>
+</div>
+</header>
+<!-- Progress Bar -->
+<div class="sticky top-[72px] z-40 w-full h-1 bg-surface-container-high overflow-hidden">
+<div class="h-full w-[25%] gradient-primary transition-all duration-500 ease-out shadow-[0_0_15px_rgba(171,214,0,0.5)]"></div>
+</div>
+<div class="flex-1 p-gutter max-w-4xl mx-auto w-full pb-32">
+<!-- EXERCISE CARD -->
+<section class="glass-panel rounded-xl p-stack-lg mb-stack-lg relative overflow-hidden group hover:-translate-y-0.5 hover:border-zinc-700/80 transition-all duration-200 ease-in-out">
+<div class="absolute top-0 right-0 w-32 h-32 bg-primary-container/5 blur-3xl rounded-full -mr-16 -mt-16 pointer-events-none transition-all group-hover:bg-primary-container/10"></div>
+<header class="flex justify-between items-center mb-8">
+<div>
+<div class="font-label-caps text-primary-fixed-dim mb-1">CURRENT EXERCISE</div>
+<h3 class="font-headline-lg text-2xl font-bold tracking-tight">Barbell Back Squat</h3>
+</div>
+<span class="bg-surface-container-highest px-3 py-1 rounded-full font-label-caps text-xs text-on-surface border border-outline-variant/30">
+                        2/4 SETS
+                    </span>
+</header>
+<!-- SET ROWS -->
+<div class="space-y-3">
+<!-- 1. Completed Row -->
+<div class="flex items-center gap-4 p-4 rounded-xl bg-primary/5 border border-outline-variant/10 transition-all">
+<div class="w-8 font-label-caps text-on-surface-variant">1</div>
+<div class="flex-1 flex gap-12">
+<div>
+<span class="font-metric-lg text-lg text-on-surface-variant line-through">80</span>
+<span class="font-label-caps text-[10px] text-on-surface-variant ml-1">KG</span>
+</div>
+<div>
+<span class="font-metric-lg text-lg text-on-surface-variant line-through">10</span>
+<span class="font-label-caps text-[10px] text-on-surface-variant ml-1">REPS</span>
+</div>
+</div>
+<div class="flex items-center justify-center w-10 h-10 rounded-lg bg-primary-fixed shadow-[0_0_12px_rgba(171,214,0,0.4)]">
+<span class="material-symbols-outlined text-on-primary font-bold" style="font-variation-settings: 'wght' 700;">check</span>
+</div>
+</div>
+<!-- 2. Active Row -->
+<div class="flex items-center gap-4 p-4 rounded-xl bg-zinc-900/40 border border-primary-fixed-dim/40 active-glow transition-all">
+<div class="w-8 font-label-caps text-primary-fixed font-bold">2</div>
+<div class="flex-1 flex flex-col md:flex-row gap-6">
+<!-- Stepper Weight -->
+<div class="flex items-center gap-3">
+<button class="w-8 h-8 rounded-md bg-surface-container-high border border-outline-variant/20 flex items-center justify-center hover:bg-surface-variant transition-colors">
+<span class="material-symbols-outlined text-sm">remove</span>
+</button>
+<div class="text-center min-w-[60px]">
+<div class="font-metric-lg text-xl">80</div>
+<div class="font-label-caps text-[10px] text-on-surface-variant">KG</div>
+</div>
+<button class="w-8 h-8 rounded-md bg-surface-container-high border border-outline-variant/20 flex items-center justify-center hover:bg-surface-variant transition-colors">
+<span class="material-symbols-outlined text-sm">add</span>
+</button>
+</div>
+<!-- Stepper Reps -->
+<div class="flex items-center gap-3">
+<button class="w-8 h-8 rounded-md bg-surface-container-high border border-outline-variant/20 flex items-center justify-center hover:bg-surface-variant transition-colors">
+<span class="material-symbols-outlined text-sm">remove</span>
+</button>
+<div class="text-center min-w-[60px]">
+<div class="font-metric-lg text-xl">10</div>
+<div class="font-label-caps text-[10px] text-on-surface-variant">REPS</div>
+</div>
+<button class="w-8 h-8 rounded-md bg-surface-container-high border border-outline-variant/20 flex items-center justify-center hover:bg-surface-variant transition-colors">
+<span class="material-symbols-outlined text-sm">add</span>
+</button>
+</div>
+</div>
+<!-- Check Button -->
+<button class="w-14 h-14 rounded-2xl bg-surface-container-highest border border-outline-variant/20 hover:border-primary-fixed-dim/60 transition-all flex items-center justify-center group/check">
+<div class="w-6 h-6 rounded-md border-2 border-on-surface-variant group-hover/check:border-primary-fixed transition-colors"></div>
+</button>
+</div>
+<!-- 3. Incomplete Row -->
+<div class="flex items-center gap-4 p-4 rounded-xl border border-outline-variant/5 opacity-50 grayscale">
+<div class="w-8 font-label-caps text-on-surface-variant">3</div>
+<div class="flex-1 flex gap-12">
+<div>
+<span class="font-metric-lg text-lg text-on-surface-variant">80</span>
+<span class="font-label-caps text-[10px] text-on-surface-variant ml-1">KG</span>
+</div>
+<div>
+<span class="font-metric-lg text-lg text-on-surface-variant">10</span>
+<span class="font-label-caps text-[10px] text-on-surface-variant ml-1">REPS</span>
+</div>
+</div>
+<div class="w-10 h-10 rounded-lg border border-outline-variant/20"></div>
+</div>
+</div>
+<div class="mt-8 flex justify-between items-center text-on-surface-variant border-t border-outline-variant/10 pt-6">
+<button class="flex items-center gap-2 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-lg">history</span>
+<span class="font-label-caps text-[10px]">PREVIOUS: 80KG x 8</span>
+</button>
+<button class="flex items-center gap-2 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-lg">edit</span>
+<span class="font-label-caps text-[10px]">ADD NOTE</span>
+</button>
+</div>
+</section>
+<!-- Secondary Content (Previous Sets/Insights) -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-stack-md">
+<div class="glass-panel p-4 rounded-xl">
+<h4 class="font-label-caps text-[10px] text-on-surface-variant mb-3 uppercase">Session Intensity</h4>
+<div class="h-32 flex items-end gap-1 px-2">
+<div class="flex-1 bg-primary-fixed/20 rounded-t-sm h-[40%]"></div>
+<div class="flex-1 bg-primary-fixed/30 rounded-t-sm h-[65%]"></div>
+<div class="flex-1 bg-primary-fixed rounded-t-sm h-[85%] neon-glow"></div>
+<div class="flex-1 bg-surface-container-highest rounded-t-sm h-[10%]"></div>
+<div class="flex-1 bg-surface-container-highest rounded-t-sm h-[10%]"></div>
+<div class="flex-1 bg-surface-container-highest rounded-t-sm h-[10%]"></div>
+</div>
+</div>
+<div class="glass-panel p-4 rounded-xl flex flex-col justify-center">
+<div class="flex items-center gap-4 mb-4">
+<div class="w-12 h-12 rounded-full bg-secondary-container/20 flex items-center justify-center">
+<span class="material-symbols-outlined text-secondary-fixed">bolt</span>
+</div>
+<div>
+<div class="font-metric-lg text-xl">428</div>
+<div class="font-label-caps text-[10px] text-on-surface-variant">CALORIES BURNED</div>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-tertiary-fixed-dim/20 flex items-center justify-center">
+<span class="material-symbols-outlined text-tertiary-fixed-dim">heart_plus</span>
+</div>
+<div>
+<div class="font-metric-lg text-xl">142</div>
+<div class="font-label-caps text-[10px] text-on-surface-variant">AVG BPM</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- FLOATING REST TIMER -->
+<div class="fixed bottom-6 right-6 w-72 glass-panel rounded-2xl overflow-hidden shadow-2xl active-glow z-50 animate-bounce-subtle">
+<!-- Rest Progress Bar top -->
+<div class="h-1 w-full bg-surface-container-highest">
+<div class="h-full w-[65%] gradient-primary shadow-[0_0_10px_rgba(171,214,0,0.4)]"></div>
+</div>
+<div class="p-4 flex flex-col items-center">
+<div class="font-label-caps text-[10px] text-on-surface-variant mb-1 tracking-widest">REST TIMER</div>
+<div class="font-metric-lg text-3xl mb-4 tabular-nums">01:30</div>
+<div class="flex items-center gap-3">
+<button class="w-10 h-10 rounded-full border border-outline-variant/30 flex items-center justify-center hover:bg-surface-variant transition-all">
+<span class="material-symbols-outlined text-xl">refresh</span>
+</button>
+<button class="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-background hover:scale-105 transition-all">
+<span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;">pause</span>
+</button>
+<button class="w-10 h-10 rounded-full border border-outline-variant/30 flex items-center justify-center hover:bg-surface-variant transition-all">
+<span class="material-symbols-outlined text-xl">close</span>
+</button>
+</div>
+</div>
+</div>
+<!-- STICKY BOTTOM ACTION -->
+<footer class="fixed bottom-0 left-[240px] right-0 p-gutter bg-gradient-to-t from-background via-background/95 to-transparent pointer-events-none">
+<div class="max-w-4xl mx-auto w-full pointer-events-auto">
+<button class="w-full py-5 rounded-2xl gradient-primary text-background font-headline-lg text-lg font-black uppercase tracking-tighter shadow-[0_10px_40px_rgba(171,214,0,0.25)] active:scale-95 transition-all flex items-center justify-center gap-3 hover:scale-105 hover:shadow-[0_0_20px_rgba(171,214,0,0.3)]">
+<span class="material-symbols-outlined text-2xl">bolt</span>
+                    FINISH WORKOUT
+                </button>
+</div>
+</footer>
+</main>
+<script>
+        // Simple timer logic simulation
+        let seconds = 2735; // 45:35
+        const timerDisplay = document.querySelector('.font-metric-lg.text-primary');
+        
+        setInterval(() => {
+            seconds++;
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            if(timerDisplay) {
+                timerDisplay.innerText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            }
+        }, 1000);
+
+        // Micro-interaction for stepper buttons
+        document.querySelectorAll('button').forEach(btn => {
+            btn.addEventListener('mousedown', () => {
+                btn.style.transform = 'scale(0.95)';
+            });
+            btn.addEventListener('mouseup', () => {
+                btn.style.transform = 'scale(1)';
+            });
+            btn.addEventListener('mouseleave', () => {
+                btn.style.transform = 'scale(1)';
+            });
+        });
+    </script>
+
+
+</body></html>

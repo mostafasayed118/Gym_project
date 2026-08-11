@@ -1,0 +1,421 @@
+<!DOCTYPE html><html class="dark" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>GymPro Admin | Mission Control</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/geist@1.0.0/dist/fonts/geist.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@100..900&amp;family=Geist+Sans:wght@100..900&amp;display=swap" rel="stylesheet">
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glow-amber {
+            box-shadow: 0 0 20px rgba(255, 191, 0, 0.2);
+        }
+        .glow-lime {
+            box-shadow: 0 0 20px rgba(171, 214, 0, 0.2);
+        }
+        .amber-gradient-top {
+            border-top: 4px solid #ffb300;
+            background: linear-gradient(to bottom, rgba(255, 179, 0, 0.05), transparent);
+        }
+        @keyframes pulse-dot {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.5); opacity: 0.5; }
+        }
+        .animate-pulse-dot {
+            animation: pulse-dot 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                "secondary-fixed": "#63f7ff",
+                "tertiary-container": "#d2e5f5",
+                "error": "#ffb4ab",
+                "on-tertiary-fixed": "#0b1d29",
+                "inverse-on-surface": "#2f3223",
+                "inverse-surface": "#e2e4cf",
+                "background": "#111508",
+                "on-surface": "#e2e4cf",
+                "tertiary-fixed": "#d2e5f5",
+                "surface-dim": "#111508",
+                "on-background": "#e2e4cf",
+                "on-tertiary-fixed-variant": "#374956",
+                "on-primary-fixed": "#161e00",
+                "surface-container-lowest": "#0c0f04",
+                "surface-container-highest": "#333627",
+                "primary": "#ffffff",
+                "on-secondary-container": "#006c71",
+                "surface-bright": "#373b2c",
+                "surface-container-low": "#1a1d10",
+                "primary-fixed-dim": "#abd600",
+                "surface-variant": "#333627",
+                "surface": "#111508",
+                "outline": "#8e9379",
+                "tertiary-fixed-dim": "#b6c9d8",
+                "tertiary": "#ffffff",
+                "on-error-container": "#ffdad6",
+                "primary-container": "#c3f400",
+                "on-surface-variant": "#c4c9ac",
+                "surface-container": "#1e2113",
+                "on-secondary-fixed": "#002021",
+                "on-secondary": "#003739",
+                "outline-variant": "#444933",
+                "error-container": "#93000a",
+                "on-primary-fixed-variant": "#3c4d00",
+                "on-error": "#690005",
+                "on-tertiary-container": "#556774",
+                "secondary": "#e6feff",
+                "secondary-fixed-dim": "#00dce5",
+                "on-primary-container": "#556d00",
+                "on-primary": "#283500",
+                "inverse-primary": "#506600",
+                "surface-tint": "#abd600",
+                "surface-container-high": "#282b1d",
+                "secondary-container": "#00f4fe",
+                "on-tertiary": "#21323e",
+                "primary-fixed": "#c3f400",
+                "on-secondary-fixed-variant": "#004f53",
+                "admin-amber": "#ffb300"
+              },
+              "borderRadius": {
+                "DEFAULT": "0.25rem",
+                "lg": "0.5rem",
+                "xl": "0.75rem",
+                "full": "9999px"
+              },
+              "spacing": {
+                "stack-sm": "8px",
+                "container-max": "1280px",
+                "gutter": "24px",
+                "margin-desktop": "48px",
+                "stack-md": "16px",
+                "margin-mobile": "20px",
+                "stack-lg": "32px"
+              },
+              "fontFamily": {
+                "headline-lg": ["Geist Sans"],
+                "display-h1": ["Geist Sans"],
+                "label-caps": ["Geist Mono"],
+                "body-md": ["Geist Sans"],
+                "metric-lg": ["Geist Mono"],
+                "metric-sm": ["Geist Mono"]
+              }
+            }
+          }
+        }
+    </script>
+<style data-extension-injected="absolute-mode" data-cleanup-id="absolute-mode-styles" type="text/css">* {<br>        -webkit-user-select: text !important;<br>        -moz-user-select: text !important;<br>        -ms-user-select: text !important;<br>         user-select: text !important;<br>    }</style></head>
+<body class="bg-background text-on-surface font-body-md selection:bg-primary-container selection:text-on-primary-container">
+<!-- NAVIGATION SHELL -->
+<aside class="fixed left-0 top-0 h-screen w-[240px] bg-surface-container-lowest/50 backdrop-blur-2xl border-r border-outline-variant/10 flex flex-col py-stack-lg z-50">
+<div class="px-6 mb-stack-lg">
+<div class="flex items-center gap-2 mb-2">
+<span class="font-headline-lg text-headline-lg font-black text-primary-fixed tracking-tighter">GymPro</span>
+</div>
+<div class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-admin-amber/10 text-admin-amber border border-admin-amber/30 tracking-widest uppercase">
+                MISSION CONTROL
+            </div>
+</div>
+<nav class="flex-1 px-4 space-y-1">
+<!-- Active Tab: Admin (Mission Control Context) -->
+<a class="flex items-center gap-stack-md text-on-surface-variant px-4 py-3 hover:bg-surface-variant/50 hover:text-primary transition-all duration-200" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-label-caps text-label-caps">Dashboard</span>
+</a>
+<a class="flex items-center gap-stack-md text-on-surface-variant px-4 py-3 hover:bg-surface-variant/50 hover:text-primary transition-all duration-200" href="#">
+<span class="material-symbols-outlined">fitness_center</span>
+<span class="font-label-caps text-label-caps">Workouts</span>
+</a>
+<a class="flex items-center gap-stack-md text-on-surface-variant px-4 py-3 hover:bg-surface-variant/50 hover:text-primary transition-all duration-200" href="#">
+<span class="material-symbols-outlined">timer</span>
+<span class="font-label-caps text-label-caps">Sessions</span>
+</a>
+<a class="flex items-center gap-stack-md text-on-surface-variant px-4 py-3 hover:bg-surface-variant/50 hover:text-primary transition-all duration-200" href="#">
+<span class="material-symbols-outlined">psychology</span>
+<span class="font-label-caps text-label-caps">Coach</span>
+</a>
+<a class="flex items-center gap-stack-md bg-admin-amber/20 text-admin-amber rounded-lg px-4 py-3 shadow-[0_0_20px_rgba(255,179,0,0.15)] border border-admin-amber/30 transition-all duration-200" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">admin_panel_settings</span>
+<span class="font-label-caps text-label-caps">Admin</span>
+</a>
+</nav>
+<div class="px-4 mt-auto">
+<a class="flex items-center gap-stack-md text-on-surface-variant px-4 py-3 hover:bg-surface-variant/50 hover:text-primary transition-all duration-200" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-label-caps text-label-caps">Profile Settings</span>
+</a>
+</div>
+</aside>
+<!-- MAIN CONTENT CANVAS -->
+<main class="ml-[240px] min-h-screen">
+<!-- TOP APP BAR -->
+<header class="sticky top-0 z-40 h-[56px] w-full bg-surface/50 backdrop-blur-2xl border-b border-outline-variant/10 flex items-center justify-between px-gutter amber-gradient-top">
+<div class="flex items-center gap-4">
+<h1 class="font-headline-lg text-headline-lg text-primary tracking-tight">Mission Control</h1>
+<span class="text-on-surface-variant font-body-md opacity-60">|</span>
+<span class="text-on-surface-variant font-body-md">System Command &amp; Biometric Oversight</span>
+</div>
+<div class="flex items-center gap-stack-md">
+<div class="relative group">
+<span class="material-symbols-outlined p-2 text-on-surface-variant hover:bg-surface-variant rounded-full cursor-pointer transition-all">search</span>
+</div>
+<div class="relative">
+<span class="material-symbols-outlined p-2 text-on-surface-variant hover:bg-surface-variant rounded-full cursor-pointer transition-all">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 bg-admin-amber rounded-full border border-surface"></span>
+</div>
+<img class="w-8 h-8 rounded-full border border-outline-variant/30" data-alt="Close up portrait of a professional fitness administrator in a sleek dark uniform, standing in a high-tech gym control room. Soft cyan and neon lime ambient lights reflect off glass surfaces in the background. The aesthetic is clean, professional, and slightly futuristic, with a focused and authoritative atmosphere." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDS8o34YvITzl6HzyqNXdGY8JJCT0Jjn6csCSGuhCFcoD1YlwS6JCZtVJgrr1uqQvBg9lO0ApBoGaCsn3vcllT03agULllLLHPXFHG3nYARCJJAJn-6AbFEtaO7diHayVva-ZNDcLVEAp_QtpTRkjdvQLgiUnFcxddhWtXiOL5eq_6Cv1Iulhpf2RnF7BKVyn3RlXqkq09AgY7wCYOJhEIPz5HvlK_qHXAh5lE7-ShY-MoW-wB125C6AYza-PhazGbC2q97ly1C_qs">
+</div>
+</header>
+<div class="p-stack-lg max-w-container-max mx-auto space-y-stack-lg">
+<!-- METRICS BENTO GRID -->
+<section class="grid grid-cols-1 md:grid-cols-4 gap-stack-md">
+<!-- Total Users -->
+<div class="bg-surface-container-lowest/50 backdrop-blur-2xl border border-outline-variant/10 p-stack-md rounded-xl">
+<p class="text-on-surface-variant font-label-caps text-label-caps mb-2 uppercase opacity-70">Total Users</p>
+<div class="flex items-baseline gap-2">
+<span class="font-metric-lg text-metric-lg text-primary">12,842</span>
+<span class="text-primary-fixed-dim text-xs font-bold font-label-caps">+14%</span>
+</div>
+</div>
+<!-- Sessions -->
+<div class="bg-surface-container-lowest/50 backdrop-blur-2xl border border-outline-variant/10 p-stack-md rounded-xl">
+<p class="text-on-surface-variant font-label-caps text-label-caps mb-2 uppercase opacity-70">Sessions (24h)</p>
+<div class="flex items-baseline gap-2">
+<span class="font-metric-lg text-metric-lg text-primary">3,105</span>
+<span class="text-primary-fixed-dim text-xs font-bold font-label-caps">+2.4%</span>
+</div>
+</div>
+<!-- Volume -->
+<div class="bg-surface-container-lowest/50 backdrop-blur-2xl border border-outline-variant/10 p-stack-md rounded-xl">
+<p class="text-on-surface-variant font-label-caps text-label-caps mb-2 uppercase opacity-70">Total Volume</p>
+<div class="flex items-baseline gap-2">
+<span class="font-metric-lg text-metric-lg text-primary">42.8M</span>
+<span class="text-on-surface-variant text-xs opacity-50 font-label-caps">LBS</span>
+</div>
+</div>
+<!-- API Errors (AMBER) -->
+<div class="bg-admin-amber/5 backdrop-blur-2xl border border-admin-amber/20 p-stack-md rounded-xl">
+<p class="text-admin-amber font-label-caps text-label-caps mb-2 uppercase opacity-80">API Errors</p>
+<div class="flex items-baseline gap-2">
+<span class="font-metric-lg text-metric-lg text-admin-amber">0.04%</span>
+<span class="material-symbols-outlined text-admin-amber text-sm" style="font-variation-settings: 'FILL' 1;">warning</span>
+</div>
+</div>
+</section>
+<!-- CHARTS GRID -->
+<section class="grid grid-cols-1 md:grid-cols-2 gap-stack-md">
+<!-- System Performance -->
+<div class="bg-surface-container-lowest/50 backdrop-blur-2xl border border-outline-variant/10 p-stack-lg rounded-xl flex flex-col h-80">
+<div class="flex justify-between items-center mb-6">
+<h3 class="font-label-caps text-label-caps text-on-surface-variant uppercase tracking-widest">System Performance</h3>
+<span class="text-primary-fixed-dim text-xs font-bold">LIME STABLE</span>
+</div>
+<div class="flex-1 relative overflow-hidden">
+<!-- Simplified Line Chart Mockup -->
+<svg class="w-full h-full" viewBox="0 0 400 150">
+<defs>
+<linearGradient id="line-grad" x1="0" x2="0" y1="0" y2="1">
+<stop offset="0%" stop-color="#abd600" stop-opacity="0.3"></stop>
+<stop offset="100%" stop-color="#abd600" stop-opacity="0"></stop>
+</linearGradient>
+</defs>
+<path d="M0,120 Q50,110 80,130 T160,90 T240,110 T320,60 T400,80 L400,150 L0,150 Z" fill="url(#line-grad)"></path>
+<path d="M0,120 Q50,110 80,130 T160,90 T240,110 T320,60 T400,80" fill="none" stroke="#abd600" stroke-width="2"></path>
+</svg>
+<div class="absolute inset-0 flex items-end justify-between px-2 pb-2">
+<span class="text-[10px] font-label-caps text-on-surface-variant opacity-40">00:00</span>
+<span class="text-[10px] font-label-caps text-on-surface-variant opacity-40">06:00</span>
+<span class="text-[10px] font-label-caps text-on-surface-variant opacity-40">12:00</span>
+<span class="text-[10px] font-label-caps text-on-surface-variant opacity-40">18:00</span>
+<span class="text-[10px] font-label-caps text-on-surface-variant opacity-40">23:59</span>
+</div>
+</div>
+</div>
+<!-- Live Activity -->
+<div class="bg-surface-container-lowest/50 backdrop-blur-2xl border border-outline-variant/10 p-stack-lg rounded-xl flex flex-col h-80">
+<div class="flex justify-between items-center mb-6">
+<h3 class="font-label-caps text-label-caps text-on-surface-variant uppercase tracking-widest">Live Activity</h3>
+<div class="flex gap-4">
+<div class="flex items-center gap-1">
+<div class="w-2 h-2 rounded-full bg-primary"></div>
+<span class="text-[10px] font-label-caps opacity-60">Login</span>
+</div>
+<div class="flex items-center gap-1">
+<div class="w-2 h-2 rounded-full bg-primary-fixed-dim"></div>
+<span class="text-[10px] font-label-caps opacity-60">Workout</span>
+</div>
+<div class="flex items-center gap-1">
+<div class="w-2 h-2 rounded-full bg-admin-amber"></div>
+<span class="text-[10px] font-label-caps opacity-60">Fail</span>
+</div>
+</div>
+</div>
+<div class="flex-1 grid grid-cols-8 grid-rows-4 gap-2 relative" id="live-activity-canvas">
+<!-- Dots populated by JS or rendered as placeholders -->
+<div class="flex items-center justify-center"><div class="w-2 h-2 rounded-full bg-primary shadow-sm animate-pulse-dot"></div></div>
+<div class="flex items-center justify-center"><div class="w-2 h-2 rounded-full bg-primary-fixed-dim opacity-40"></div></div>
+<div class="flex items-center justify-center"><div class="w-2 h-2 rounded-full bg-admin-amber shadow-sm animate-pulse-dot"></div></div>
+<div class="flex items-center justify-center"><div class="w-2 h-2 rounded-full bg-primary-fixed-dim"></div></div>
+<div class="flex items-center justify-center"><div class="w-2 h-2 rounded-full bg-primary opacity-20"></div></div>
+<div class="flex items-center justify-center"><div class="w-3 h-3 rounded-full bg-primary-fixed-dim glow-lime"></div></div>
+<div class="flex items-center justify-center"><div class="w-2 h-2 rounded-full bg-primary-fixed-dim opacity-60"></div></div>
+<div class="flex items-center justify-center"><div class="w-2 h-2 rounded-full bg-primary"></div></div>
+<div class="flex items-center justify-center"><div class="w-2 h-2 rounded-full bg-admin-amber/40"></div></div>
+<div class="flex items-center justify-center"><div class="w-2 h-2 rounded-full bg-primary-fixed-dim"></div></div>
+<div class="flex items-center justify-center"><div class="w-2 h-2 rounded-full bg-primary opacity-80"></div></div>
+<div class="flex items-center justify-center"><div class="w-2 h-2 rounded-full bg-admin-amber animate-pulse-dot"></div></div>
+<div class="flex items-center justify-center"><div class="w-2 h-2 rounded-full bg-primary-fixed-dim"></div></div>
+<div class="flex items-center justify-center"><div class="w-2 h-2 rounded-full bg-primary-fixed-dim"></div></div>
+<div class="flex items-center justify-center"><div class="w-4 h-4 rounded-full bg-primary glow-white border border-primary/20"></div></div>
+<div class="flex items-center justify-center"><div class="w-2 h-2 rounded-full bg-primary-fixed-dim opacity-30"></div></div>
+</div>
+</div>
+</section>
+<!-- DIRECTORY TABLE -->
+<section class="bg-surface-container-lowest/50 backdrop-blur-2xl border border-outline-variant/10 rounded-xl overflow-hidden">
+<div class="p-6 border-b border-outline-variant/10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+<div class="flex items-center gap-4">
+<h2 class="font-headline-lg text-headline-lg text-primary tracking-tight">Directory</h2>
+<div class="flex bg-surface-container p-1 rounded-lg">
+<button class="px-4 py-1.5 rounded-md bg-surface-bright text-primary text-xs font-label-caps">All Users</button>
+<button class="px-4 py-1.5 rounded-md text-on-surface-variant hover:text-primary text-xs font-label-caps transition-colors hover:bg-surface-container-high/50 duration-200">Coaches</button>
+<button class="px-4 py-1.5 rounded-md text-on-surface-variant hover:text-primary text-xs font-label-caps transition-colors hover:bg-surface-container-high/50 duration-200">Admins</button>
+</div>
+</div>
+<div class="flex items-center gap-stack-md">
+<div class="relative flex-1">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm">filter_list</span>
+<input class="w-full md:w-64 bg-surface-container-low border border-outline-variant/20 rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-primary-fixed-dim transition-all" placeholder="Filter by name, role or biometric ID..." type="text">
+</div>
+<button class="p-2 border border-outline-variant/20 rounded-lg hover:bg-surface-variant transition-colors">
+<span class="material-symbols-outlined text-on-surface-variant">download</span>
+</button>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left">
+<thead>
+<tr class="bg-surface-container/30 border-b border-outline-variant/10">
+<th class="px-6 py-4 font-label-caps text-label-caps text-on-surface-variant opacity-60 uppercase tracking-widest">User Identity</th>
+<th class="px-6 py-4 font-label-caps text-label-caps text-on-surface-variant opacity-60 uppercase tracking-widest">Access Role</th>
+<th class="px-6 py-4 font-label-caps text-label-caps text-on-surface-variant opacity-60 uppercase tracking-widest">Real-time Status</th>
+<th class="px-6 py-4 font-label-caps text-label-caps text-on-surface-variant opacity-60 uppercase tracking-widest text-right">Command</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/5">
+<!-- Row 1: Admin -->
+<tr class="hover:bg-surface-container/20 transition-colors">
+<td class="px-6 py-4">
+<div class="flex items-center gap-4">
+<img class="w-10 h-10 rounded-lg object-cover grayscale brightness-110" data-alt="Close up face portrait of a male gym manager in his 40s, sharp features, wearing dark modern performance apparel. The lighting is dramatic, high contrast with deep blacks and neon amber accents, emphasizing a high-performance executive look in a professional tech environment." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDSxyNQ-9Kq8dkNTBwB6Q4xq_PQWQQvHvMDsheAjV5uYxpezEKSAy1Zea0wLamaHQB5YoxKWC0tkZvupPxQ8G3y0lDgEKU2TojfUHeHjRiErenDHt6pxNPeQbjUwvGyOGH2Nf-bOr26ukC41Ct3-25aD2I3HsOEhfzd66Gt3hiZLGcrk2XMFLJkEMyt4uBCv673Bfi6jzhQAw1X0BBVmZthB0LpLVjFQE95eMTshTb1W5_Tklw2pweubtb5c950xYMrnJL2YRieGyw">
+<div>
+<p class="font-headline-lg text-[16px] text-primary">Marcus Thorne</p>
+<p class="text-xs text-on-surface-variant opacity-60 font-label-caps">m.thorne@gympro.elite</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="px-2.5 py-1 rounded bg-admin-amber/10 border border-admin-amber/30 text-admin-amber font-label-caps text-[10px] tracking-widest">ADMIN</span>
+</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<div class="w-1.5 h-1.5 rounded-full bg-primary-fixed-dim animate-pulse"></div>
+<span class="text-xs font-label-caps text-primary-fixed-dim uppercase">Online</span>
+</div>
+</td>
+<td class="px-6 py-4 text-right">
+<button class="p-2 hover:bg-surface-variant rounded-lg text-on-surface-variant transition-all">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</td>
+</tr>
+<!-- Row 2: Coach -->
+<tr class="hover:bg-surface-container/20 transition-colors">
+<td class="px-6 py-4">
+<div class="flex items-center gap-4">
+<img class="w-10 h-10 rounded-lg object-cover" data-alt="Studio portrait of a female fitness coach, athletic build, hair tied back, wearing technical neon-detailed gym wear. Background is a dark minimalist gym with soft teal light strips. She has an focused expression, representing elite training standards and biometric precision." src="https://lh3.googleusercontent.com/aida-public/AB6AXuATrphkPWJPBVqW-Dg2Q6opwBO26okQFla_hZk2_eO_RNYlfKrmiVUtcA8ZodJxDuXdyOhWCqnS22EM2CxlYAYzICGz6FSretIFUAi1Kt5G5Du6MFqgxIWI8mRL3qFfG44BKi0ks1vrpzRUr9dCLO6SxPQROE4Qn043qHWgeFBUptVyu-etZ17LTSD41w4-PYf8a_nAe7zUervFmS_MLMN11QuwU1zskp9NT5cLA1edyIG_6CqLX9zY-o0XeFwFFTbuymQew2Yd4jg">
+<div>
+<p class="font-headline-lg text-[16px] text-primary">Elena Rodriguez</p>
+<p class="text-xs text-on-surface-variant opacity-60 font-label-caps">elena.r@gympro.elite</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="px-2.5 py-1 rounded bg-primary-container/10 border border-primary-container/30 text-primary-fixed-dim font-label-caps text-[10px] tracking-widest">COACH</span>
+</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<div class="w-1.5 h-1.5 rounded-full bg-primary-fixed-dim animate-pulse"></div>
+<span class="text-xs font-label-caps text-primary-fixed-dim uppercase">Online</span>
+</div>
+</td>
+<td class="px-6 py-4 text-right">
+<button class="p-2 hover:bg-surface-variant rounded-lg text-on-surface-variant transition-all">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</td>
+</tr>
+<!-- Row 3: User -->
+<tr class="hover:bg-surface-container/20 transition-colors">
+<td class="px-6 py-4">
+<div class="flex items-center gap-4">
+<img class="w-10 h-10 rounded-lg object-cover opacity-80" data-alt="Portrait of a young male athlete in a dark hoodie, shadowed lighting with subtle primary white highlights. He is looking at his wrist as if checking biometrics. The background is blurred dark industrial metal, giving a mood of intense focus and personal growth." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBPESOIc5ybaiGvVUR5Ts1AwhF3_zB7iViGpg5Fg977hWj7gA8Wk1vNnosWXmC7KLNZ0M0AzMO5iXkRQG4SZk39PcqUULe2EEXbRe_Kjw_LVSnBO68GhMX6Ejh-R3ohwUqRq-BCC8S8pvksFHnWK2_xHhLXLcpN9YCetlFyGDOTQn1miTqiQBZTFeDxpTd0vVnXnOdnWE7suw6KfFkMYcev3Pt41VoH1FjjU5tJ9WCm1zSWricLCYbssDOLSL3e7PmJtkfI0oeWFA4">
+<div>
+<p class="font-headline-lg text-[16px] text-primary">Julian Vane</p>
+<p class="text-xs text-on-surface-variant opacity-60 font-label-caps">j.vane@member.net</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="px-2.5 py-1 rounded bg-surface-variant/20 border border-outline-variant/30 text-on-surface-variant font-label-caps text-[10px] tracking-widest">USER</span>
+</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<div class="w-1.5 h-1.5 rounded-full bg-on-surface-variant/30"></div>
+<span class="text-xs font-label-caps text-on-surface-variant opacity-40 uppercase">Offline</span>
+</div>
+</td>
+<td class="px-6 py-4 text-right">
+<button class="p-2 hover:bg-surface-variant rounded-lg text-on-surface-variant transition-all">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</div>
+</main>
+<!-- FLOATING BACKGROUND EFFECTS -->
+<div class="fixed inset-0 -z-10 pointer-events-none overflow-hidden">
+<div class="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-primary-fixed-dim/5 blur-[120px] rounded-full"></div>
+<div class="absolute bottom-[-10%] left-[-5%] w-[40%] h-[40%] bg-admin-amber/5 blur-[120px] rounded-full"></div>
+</div>
+<script>
+        // Micro-interaction for live dots
+        const canvas = document.getElementById('live-activity-canvas');
+        const colors = ['bg-primary', 'bg-primary-fixed-dim', 'bg-admin-amber'];
+        
+        setInterval(() => {
+            const dots = canvas.querySelectorAll('div > div');
+            const randomDot = dots[Math.floor(Math.random() * dots.length)];
+            const randomColor = colors[Math.floor(Math.random() * colors.length)];
+            
+            // Subtle flash effect
+            randomDot.classList.add('scale-150', 'brightness-150');
+            setTimeout(() => {
+                randomDot.classList.remove('scale-150', 'brightness-150');
+            }, 500);
+        }, 3000);
+    </script>
+
+
+</body></html>
