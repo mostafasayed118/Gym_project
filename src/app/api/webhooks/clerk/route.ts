@@ -1,6 +1,7 @@
 import { Webhook } from "svix";
 import { headers } from "next/headers";
 import { ConvexHttpClient } from "convex/browser";
+import { api } from "@convex/_generated/api";
 import { z } from "zod";
 
 // ─── Env ────────────────────────────────────────────────────────────
@@ -64,9 +65,8 @@ function buildName(first?: string | null, last?: string | null): string {
   return parts.length > 0 ? parts.join(" ") : "Unknown User";
 }
 
-// ─── Convex mutation helpers (string-based, no generated types) ──────
+// ─── Convex mutation helpers ────────────────────────────────────────
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function syncUser(args: {
   clerkId: string;
   email: string;
@@ -74,14 +74,61 @@ async function syncUser(args: {
   role: ConvexUserRole;
   avatarUrl?: string;
 }): Promise<string> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return await convex.mutation("auth:syncUser" as any, args as any);
+  return await convex.mutation(api.auth.syncUser, args);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function deleteUser(args: { clerkId: string }): Promise<void> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await convex.mutation("auth:deleteUser" as any, args as any);
+  try {
+    await convex.mutation(api.auth.deleteUser, args);
+  } catch {
+    // User already deleted — idempotent
+  }
+}
+
+async function sendWelcomeEmail(args: { email: string; name: string }): Promise<void> {
+  if (!args.email) return;
+  try {
+    await convex.action(api.emailActions.sendWelcomeEmail, args);
+  } catch (err) {
+    // Email failure must NOT 500 the webhook (would trigger Svix retries
+    // and re-run syncUser unnecessarily). Log and move on.
+    console.error("Welcome email failed:", err);
+  }
+}
+
+/**
+ * Webhook idempotency — closes BUG-022 (Clerk variant). Svix retries the same
+ * `svix-id`; without dedupe, every retry re-fires `sendWelcomeEmail`,
+ * `syncUser`, and `deleteUser`.
+ */
+async function isEventProcessed(svixId: string): Promise<boolean> {
+  try {
+    const result = await convex.query(api.subscriptions.isWebhookEventProcessed, {
+      provider: "clerk",
+      eventId: svixId,
+    });
+    return result === true;
+  } catch {
+    return false; // Fail-open — better to risk double-apply than drop.
+  }
+}
+
+async function markEventProcessed(
+  svixId: string,
+  eventType: string,
+): Promise<void> {
+  const billingSecret = process.env.CONVEX_BILLING_WEBHOOK_SECRET;
+  if (!billingSecret) return;
+  try {
+    await convex.mutation(api.subscriptions.markWebhookEventProcessed, {
+      provider: "clerk",
+      eventId: svixId,
+      eventType,
+      secret: billingSecret,
+    });
+  } catch (err) {
+    console.error("Failed to mark Clerk event processed:", err);
+  }
 }
 
 // ─── Handler ────────────────────────────────────────────────────────
@@ -115,6 +162,11 @@ export async function POST(request: Request): Promise<Response> {
   const eventType = evt.type;
   const data = evt.data;
 
+  // Idempotency — skip if Svix has already retried this event.
+  if (await isEventProcessed(svixId)) {
+    return new Response("OK (deduped)", { status: 200 });
+  }
+
   try {
     switch (eventType) {
       case "user.created": {
@@ -125,15 +177,18 @@ export async function POST(request: Request): Promise<Response> {
 
         const u = parsed.data;
         const email = u.email_addresses[0]?.email_address ?? "";
+        const name = buildName(u.first_name, u.last_name);
         const role = resolveRole(u.public_metadata);
 
         await syncUser({
           clerkId: u.id,
           email,
-          name: buildName(u.first_name, u.last_name),
+          name,
           role,
           avatarUrl: u.image_url,
         });
+
+        await sendWelcomeEmail({ email, name });
 
         break;
       }
@@ -178,6 +233,9 @@ export async function POST(request: Request): Promise<Response> {
     console.error(`Error processing webhook event ${eventType}:`, err);
     return new Response("Internal server error", { status: 500 });
   }
+
+  // Mark processed last so mid-handler failures retry safely.
+  await markEventProcessed(svixId, eventType);
 
   return new Response("OK", { status: 200 });
 }
