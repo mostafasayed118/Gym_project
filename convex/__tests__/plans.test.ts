@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest"
-import { createMockCtx, createTestUser, createTestPlan } from "./test-utils"
+import { createMockCtx, createTestUser, createTestPlan } from "./testUtils"
 
 type Badge = { id: string; name?: string; unlockedAt?: number }
 

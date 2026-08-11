@@ -110,8 +110,7 @@ export default defineSchema({
     body: v.string(),
     readBy: v.array(v.id("users")),
   })
-    .index("by_conversationId", ["conversationId"])
-    .index("by_conversationId_createdAt", ["conversationId"]),
+    .index("by_conversationId", ["conversationId"]),
 
   typingIndicators: defineTable({
     conversationId: v.id("conversations"),
