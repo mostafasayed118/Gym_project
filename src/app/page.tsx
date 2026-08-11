@@ -1,43 +1,50 @@
-import { SignIn, SignUp } from "@clerk/nextjs";
-import { auth } from "@clerk/nextjs/server";
-import { SignOutButton } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server"
+import { Metadata } from "next"
+import { LandingPageClient } from "@/components/landing-page-client"
+
+export const metadata: Metadata = {
+  title: "GymPro - Professional Gym Management Platform for Coaches & Clients",
+  description:
+    "Track workouts, manage training plans, and connect with your coach in real-time. The all-in-one platform for fitness professionals and their clients.",
+  keywords: [
+    "gym management",
+    "personal trainer",
+    "workout tracker",
+    "fitness coaching",
+    "training plans",
+    "workout app",
+    "coach client platform",
+  ],
+  openGraph: {
+    type: "website",
+    siteName: "GymPro",
+    title: "GymPro - Professional Gym Management Platform",
+    description:
+      "Track workouts, manage training plans, and connect with your coach in real-time.",
+    url: "https://gympro.app",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "GymPro - Gym Management Platform",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "GymPro - Professional Gym Management Platform",
+    description:
+      "Track workouts, manage training plans, and connect with your coach in real-time.",
+    images: ["/og-image.png"],
+  },
+  alternates: {
+    canonical: "https://gympro.app",
+  },
+}
 
 export default async function HomePage() {
-  const session = await auth();
+  const session = await auth()
 
-  return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-8 p-8">
-      <div className="flex flex-col items-center gap-4 text-center">
-        <h1 className="text-4xl font-bold tracking-tight">GymPro</h1>
-        <p className="text-muted-foreground max-w-md text-lg">
-          Professional gym management for coaches and clients. Track workouts, plans, and progress in
-          real-time.
-        </p>
-      </div>
-
-      {session.userId ? (
-        <div className="flex flex-col items-center gap-4">
-          <p className="text-muted-foreground text-sm">You are signed in.</p>
-          <div className="flex gap-4">
-            <a
-              href="/dashboard"
-              className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-md px-4 py-2 text-sm font-medium transition-colors"
-            >
-              Dashboard
-            </a>
-            <SignOutButton>
-              <button className="bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded-md px-4 py-2 text-sm font-medium transition-colors">
-                Sign Out
-              </button>
-            </SignOutButton>
-          </div>
-        </div>
-      ) : (
-        <div className="flex gap-4">
-          <SignIn routing="hash" />
-          <SignUp routing="hash" />
-        </div>
-      )}
-    </main>
-  );
+  return <LandingPageClient isAuthenticated={!!session.userId} />
 }

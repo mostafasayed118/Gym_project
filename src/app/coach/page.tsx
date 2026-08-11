@@ -1,27 +1,15 @@
-import { auth } from "@clerk/nextjs/server";
-import { redirect } from "next/navigation";
+import { requireRole } from "@/lib/auth-server";
 import { SignOutButton } from "@clerk/nextjs";
 
 export default async function CoachPage() {
-  const session = await auth();
-
-  if (!session.userId) {
-    redirect("/sign-in");
-  }
-
-  const role = (session.sessionClaims?.metadata as Record<string, unknown> | undefined)
-    ?.role as string | undefined;
-
-  if (role !== "coach" && role !== "admin") {
-    redirect("/unauthorized");
-  }
+  const { role } = await requireRole(["coach", "admin"]);
 
   return (
     <div className="flex min-h-screen flex-col">
       <header className="border-border flex items-center justify-between border-b px-6 py-4">
         <h1 className="text-lg font-semibold">Coach Panel</h1>
         <div className="flex items-center gap-4">
-          <span className="text-muted-foreground text-sm">Coach</span>
+          <span className="text-muted-foreground text-sm capitalize">{role}</span>
           <SignOutButton>
             <button className="text-muted-foreground hover:text-foreground text-sm transition-colors">
               Sign Out
