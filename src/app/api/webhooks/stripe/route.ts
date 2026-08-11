@@ -56,7 +56,10 @@ async function resolveUserId(opts: {
 
   const subscriptions = await convex.query(
     api.subscriptions.findByStripeCustomerId,
-    { stripeCustomerId: opts.stripeCustomerId },
+    {
+      stripeCustomerId: opts.stripeCustomerId,
+      secret: process.env.CONVEX_BILLING_WEBHOOK_SECRET ?? "",
+    },
   )
   const first = subscriptions[0] ?? null
   return first?.userId ?? null
@@ -72,9 +75,11 @@ async function upsertSubscription(data: {
   currentPeriodEnd: number
   eventCreated?: number
 }) {
+  const billingSecret = process.env.CONVEX_BILLING_WEBHOOK_SECRET
   return await convex.mutation(api.subscriptions.upsert, {
     ...data,
     userId: data.userId as Id<"users">,
+    secret: billingSecret ?? "",
   })
 }
 
@@ -109,6 +114,7 @@ async function isEventProcessed(eventId: string): Promise<boolean> {
     const result = await convex.query(api.subscriptions.isWebhookEventProcessed, {
       provider: "stripe",
       eventId,
+      secret: process.env.CONVEX_BILLING_WEBHOOK_SECRET ?? "",
     })
     return result === true
   } catch (err) {
@@ -279,7 +285,10 @@ export async function POST(request: Request): Promise<Response> {
 
         const existingList = await convex.query(
           api.subscriptions.findByStripeCustomerId,
-          { stripeCustomerId: subscription.customer as string },
+          {
+            stripeCustomerId: subscription.customer as string,
+            secret: process.env.CONVEX_BILLING_WEBHOOK_SECRET ?? "",
+          },
         )
         const existingSub = existingList[0] ?? null
         if (!existingSub) break

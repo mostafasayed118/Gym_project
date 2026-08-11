@@ -37,7 +37,10 @@ async function getAuthContext(clerkId: string): Promise<AuthContext> {
   try {
     const result = await convex.query(
       api.subscriptions.getAuthContextByClerkId,
-      { clerkId },
+      {
+        clerkId,
+        secret: process.env.CONVEX_BILLING_WEBHOOK_SECRET ?? "",
+      },
     );
     if (!result) {
       return {

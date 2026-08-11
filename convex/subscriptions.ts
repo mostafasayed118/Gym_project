@@ -1,6 +1,7 @@
 import {
   query,
   mutation,
+  internalQuery,
   type QueryCtx,
   type MutationCtx,
 } from "./_generated/server";
@@ -56,7 +57,11 @@ export async function requireActiveSubscription(
 // ─── Queries ────────────────────────────────────────────────────────
 
 /** Get subscription for a user */
-export const getByUser = query({
+/**
+ * Internal-only lookup — server-to-server calls only (cron, actions, admin
+ * tooling). Not reachable from the browser.
+ */
+export const getByUser = internalQuery({
   args: { userId: v.id("users") },
   handler: async (ctx, args) => {
     return await ctx.db
@@ -67,7 +72,11 @@ export const getByUser = query({
 });
 
 /** Get subscription by Stripe subscription ID */
-export const getByStripeSubscriptionId = query({
+/**
+ * Internal-only lookup — server-to-server calls only (webhook routes, cron,
+ * admin tooling). Not reachable from the browser.
+ */
+export const getByStripeSubscriptionId = internalQuery({
   args: { stripeSubscriptionId: v.string() },
   handler: async (ctx, args) => {
     return await ctx.db
@@ -83,9 +92,35 @@ export const getByStripeSubscriptionId = query({
  * Find subscriptions by Stripe customer ID using the dedicated composite
  * index. Closes BUG-030 (full-table scan per webhook event).
  */
+/**
+ * Server-only lookup — used by the Stripe webhook route (which verifies the
+ * Stripe signature before calling). Shared-secret guarded so browser clients
+ * cannot enumerate subscriptions by Stripe customer ID.
+ */
 export const findByStripeCustomerId = query({
-  args: { stripeCustomerId: v.string() },
+  args: {
+    stripeCustomerId: v.string(),
+    secret: v.string(),
+  },
   handler: async (ctx, args) => {
+    // Defense layer 1: a Clerk-authenticated client must not be able to call
+    // this even with a leaked secret.
+    const identity = await ctx.auth.getUserIdentity();
+    if (identity) {
+      throw new Error("Forbidden: billing lookups are server-only");
+    }
+
+    // Defense layer 2: shared-secret check.
+    const expected = process.env.CONVEX_BILLING_WEBHOOK_SECRET;
+    if (!expected) {
+      throw new Error(
+        "CONVEX_BILLING_WEBHOOK_SECRET is not configured in the Convex deployment",
+      );
+    }
+    if (args.secret !== expected) {
+      throw new Error("Forbidden: invalid billing secret");
+    }
+
     return await ctx.db
       .query("subscriptions")
       .withIndex("by_stripeCustomerId", (q) =>
@@ -100,12 +135,36 @@ export const findByStripeCustomerId = query({
  * recorded as processed. Used by the Stripe and Clerk webhook handlers to
  * short-circuit retries. (Closes BUG-022.)
  */
+/**
+ * Server-only lookup — used by the Clerk/Stripe webhook routes for idempotency
+ * (both verify their provider signature before calling). Shared-secret guarded
+ * so browser clients cannot probe the processed-event ledger.
+ */
 export const isWebhookEventProcessed = query({
   args: {
     provider: v.union(v.literal("stripe"), v.literal("clerk")),
     eventId: v.string(),
+    secret: v.string(),
   },
   handler: async (ctx, args) => {
+    // Defense layer 1: a Clerk-authenticated client must not be able to call
+    // this even with a leaked secret.
+    const identity = await ctx.auth.getUserIdentity();
+    if (identity) {
+      throw new Error("Forbidden: webhook ledger is server-only");
+    }
+
+    // Defense layer 2: shared-secret check.
+    const expected = process.env.CONVEX_BILLING_WEBHOOK_SECRET;
+    if (!expected) {
+      throw new Error(
+        "CONVEX_BILLING_WEBHOOK_SECRET is not configured in the Convex deployment",
+      );
+    }
+    if (args.secret !== expected) {
+      throw new Error("Forbidden: invalid billing secret");
+    }
+
     const existing = await ctx.db
       .query("processedWebhookEvents")
       .withIndex("by_provider_eventId", (q) =>
@@ -174,9 +233,35 @@ export const markWebhookEventProcessed = mutation({
  * - Coaches/users report based on their active `subscriptions` row.
  * - Returns `null` if the user does not exist in Convex.
  */
+/**
+ * Server-only lookup — called by the Next.js middleware (proxy.ts) to resolve
+ * role/subscription context for route gating. Shared-secret guarded so browser
+ * clients cannot probe arbitrary users' auth context.
+ */
 export const getAuthContextByClerkId = query({
-  args: { clerkId: v.string() },
+  args: {
+    clerkId: v.string(),
+    secret: v.string(),
+  },
   handler: async (ctx, args) => {
+    // Defense layer 1: a Clerk-authenticated client must not be able to call
+    // this even with a leaked secret.
+    const identity = await ctx.auth.getUserIdentity();
+    if (identity) {
+      throw new Error("Forbidden: auth-context lookup is server-only");
+    }
+
+    // Defense layer 2: shared-secret check.
+    const expected = process.env.CONVEX_BILLING_WEBHOOK_SECRET;
+    if (!expected) {
+      throw new Error(
+        "CONVEX_BILLING_WEBHOOK_SECRET is not configured in the Convex deployment",
+      );
+    }
+    if (args.secret !== expected) {
+      throw new Error("Forbidden: invalid billing secret");
+    }
+
     const user = await ctx.db
       .query("users")
       .withIndex("by_clerkId", (q) => q.eq("clerkId", args.clerkId))
@@ -239,8 +324,27 @@ export const upsert = mutation({
     currentPeriodStart: v.number(),
     currentPeriodEnd: v.number(),
     eventCreated: v.optional(v.number()),
+    secret: v.string(),
   },
   handler: async (ctx, args) => {
+    // Defense layer 1: a Clerk-authenticated client must not be able to call
+    // this even with a leaked secret.
+    const identity = await ctx.auth.getUserIdentity();
+    if (identity) {
+      throw new Error("Forbidden: billing mutations are server-only");
+    }
+
+    // Defense layer 2: shared-secret check.
+    const expected = process.env.CONVEX_BILLING_WEBHOOK_SECRET;
+    if (!expected) {
+      throw new Error(
+        "CONVEX_BILLING_WEBHOOK_SECRET is not configured in the Convex deployment",
+      );
+    }
+    if (args.secret !== expected) {
+      throw new Error("Forbidden: invalid billing secret");
+    }
+
     const existing = await ctx.db
       .query("subscriptions")
       .withIndex("by_stripeSubscriptionId", (q) =>

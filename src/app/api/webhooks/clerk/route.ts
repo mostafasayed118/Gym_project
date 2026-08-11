@@ -106,6 +106,7 @@ async function isEventProcessed(svixId: string): Promise<boolean> {
     const result = await convex.query(api.subscriptions.isWebhookEventProcessed, {
       provider: "clerk",
       eventId: svixId,
+      secret: process.env.CONVEX_BILLING_WEBHOOK_SECRET ?? "",
     });
     return result === true;
   } catch {
