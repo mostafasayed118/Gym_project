@@ -1,5 +1,4 @@
-import { auth } from "@clerk/nextjs/server";
-import { redirect } from "next/navigation";
+import { requireAuth } from "@/lib/auth-server";
 import { SessionTracker } from "@/components/user/session/session-tracker";
 
 interface SessionPageProps {
@@ -7,11 +6,7 @@ interface SessionPageProps {
 }
 
 export default async function SessionPage({ params }: SessionPageProps) {
-  const session = await auth();
-
-  if (!session.userId) {
-    redirect("/sign-in");
-  }
+  await requireAuth();
 
   const { sessionId } = await params;
 

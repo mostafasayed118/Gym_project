@@ -1,8 +1,8 @@
-import { requireRole } from "@/lib/auth-server";
+import { requireCoachAccess } from "@/lib/auth-server";
 import { SignOutButton } from "@clerk/nextjs";
 
 export default async function CoachPage() {
-  const { role } = await requireRole(["coach", "admin"]);
+  const { role } = await requireCoachAccess();
 
   return (
     <div className="flex min-h-screen flex-col">

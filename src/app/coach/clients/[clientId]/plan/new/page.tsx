@@ -1,4 +1,4 @@
-import { requireRole } from "@/lib/auth-server";
+import { requireCoachAccess } from "@/lib/auth-server";
 import { PlanBuilderForm } from "@/features/plan-builder/plan-builder-form";
 
 interface PageProps {
@@ -6,7 +6,7 @@ interface PageProps {
 }
 
 export default async function NewClientPlanPage({ params }: PageProps) {
-  await requireRole(["coach", "admin"]);
+  await requireCoachAccess();
   const { clientId } = await params;
 
   return <PlanBuilderForm preselectedClientId={clientId} />;
