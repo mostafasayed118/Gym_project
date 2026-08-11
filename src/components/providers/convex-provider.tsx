@@ -1,10 +1,23 @@
 "use client";
 
 import { ConvexReactClient } from "convex/react";
-import { ConvexProvider } from "convex/react";
+import { ConvexProviderWithClerk } from "convex/react-clerk";
+import { useAuth } from "@clerk/nextjs";
 
-const convexClient = new ConvexReactClient(process.env.NEXT_PUBLIC_CONVEX_URL as string);
+const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
+
+if (!convexUrl) {
+  throw new Error(
+    "NEXT_PUBLIC_CONVEX_URL is not set. Convex client cannot initialize.",
+  );
+}
+
+const convexClient = new ConvexReactClient(convexUrl);
 
 export function ConvexClientProvider({ children }: { children: React.ReactNode }) {
-  return <ConvexProvider client={convexClient}>{children}</ConvexProvider>;
+  return (
+    <ConvexProviderWithClerk client={convexClient} useAuth={useAuth}>
+      {children}
+    </ConvexProviderWithClerk>
+  );
 }

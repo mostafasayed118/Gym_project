@@ -50,11 +50,11 @@ export const SetInput = memo(function SetInput({
       className={cn(
         "flex items-center gap-2 rounded-lg border p-2 transition-colors",
         isCompleted
-          ? "border-green-500/30 bg-green-500/5"
-          : "border-border",
+          ? "border-[#abd600]/30 bg-[#abd600]/5"
+          : "border-[rgba(68,73,51,0.2)] bg-[rgba(9,9,11,0.3)]",
       )}
     >
-      <span className="text-muted-foreground w-6 text-center text-xs font-medium">
+      <span className="text-[#c4c9ac] w-6 text-center text-xs font-medium font-label-caps">
         {setIndex + 1}
       </span>
 
@@ -64,6 +64,7 @@ export const SetInput = memo(function SetInput({
           size="icon-xs"
           onClick={() => handleWeightStep(-2.5)}
           aria-label="Decrease weight"
+          className="bg-[#282b1d] hover:bg-[#333627] border border-[rgba(68,73,51,0.2)]"
         >
           <Minus className="size-3" />
         </Button>
@@ -75,10 +76,10 @@ export const SetInput = memo(function SetInput({
             value={actualWeight || ""}
             onChange={(e) => onWeightChange(Number(e.target.value) || 0)}
             placeholder={`${targetWeight}`}
-            className="h-9 w-full text-center text-sm tabular-nums"
+            className="h-9 w-full text-center text-sm tabular-nums font-metric-lg bg-[#09090b] border-[#444933]/40 focus:border-[#abd600]"
             aria-label={`Weight for set ${setIndex + 1}`}
           />
-          <span className="text-muted-foreground pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-xs">
+          <span className="text-[#c4c9ac] pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-xs font-label-caps">
             kg
           </span>
         </div>
@@ -87,12 +88,13 @@ export const SetInput = memo(function SetInput({
           size="icon-xs"
           onClick={() => handleWeightStep(2.5)}
           aria-label="Increase weight"
+          className="bg-[#282b1d] hover:bg-[#333627] border border-[rgba(68,73,51,0.2)]"
         >
           <Plus className="size-3" />
         </Button>
       </div>
 
-      <span className="text-muted-foreground text-xs">&times;</span>
+      <span className="text-[#444933] text-xs">&times;</span>
 
       <div className="flex flex-1 items-center gap-1">
         <Button
@@ -100,6 +102,7 @@ export const SetInput = memo(function SetInput({
           size="icon-xs"
           onClick={() => handleRepsStep(-1)}
           aria-label="Decrease reps"
+          className="bg-[#282b1d] hover:bg-[#333627] border border-[rgba(68,73,51,0.2)]"
         >
           <Minus className="size-3" />
         </Button>
@@ -110,10 +113,10 @@ export const SetInput = memo(function SetInput({
             value={actualReps || ""}
             onChange={(e) => onRepsChange(Number(e.target.value) || 0)}
             placeholder={`${targetReps}`}
-            className="h-9 w-full text-center text-sm tabular-nums"
+            className="h-9 w-full text-center text-sm tabular-nums font-metric-lg bg-[#09090b] border-[#444933]/40 focus:border-[#abd600]"
             aria-label={`Reps for set ${setIndex + 1}`}
           />
-          <span className="text-muted-foreground pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-xs">
+          <span className="text-[#c4c9ac] pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-xs font-label-caps">
             reps
           </span>
         </div>
@@ -122,6 +125,7 @@ export const SetInput = memo(function SetInput({
           size="icon-xs"
           onClick={() => handleRepsStep(1)}
           aria-label="Increase reps"
+          className="bg-[#282b1d] hover:bg-[#333627] border border-[rgba(68,73,51,0.2)]"
         >
           <Plus className="size-3" />
         </Button>
@@ -134,7 +138,7 @@ export const SetInput = memo(function SetInput({
         disabled={actualWeight === 0 && actualReps === 0}
         className={cn(
           "shrink-0 transition-colors",
-          isCompleted && "bg-green-600 hover:bg-green-700",
+          isCompleted && "bg-[#abd600] hover:bg-[#abd600]/90 text-[#09090b]",
         )}
         aria-label={isCompleted ? `Set ${setIndex + 1} completed` : `Complete set ${setIndex + 1}`}
       >
@@ -146,20 +150,20 @@ export const SetInput = memo(function SetInput({
 
 export function SetInputSkeleton() {
   return (
-    <div className="flex items-center gap-2 rounded-lg border border-border p-2">
-      <div className="bg-muted size-6 animate-pulse rounded" />
+    <div className="flex items-center gap-2 rounded-lg border border-[rgba(68,73,51,0.2)] bg-[rgba(9,9,11,0.3)] p-2">
+      <div className="bg-[#282b1d] size-6 animate-pulse rounded" />
       <div className="flex flex-1 items-center gap-1">
-        <div className="bg-muted size-7 animate-pulse rounded" />
-        <div className="bg-muted h-9 flex-1 animate-pulse rounded" />
-        <div className="bg-muted size-7 animate-pulse rounded" />
+        <div className="bg-[#282b1d] size-7 animate-pulse rounded" />
+        <div className="bg-[#282b1d] h-9 flex-1 animate-pulse rounded" />
+        <div className="bg-[#282b1d] size-7 animate-pulse rounded" />
       </div>
-      <div className="bg-muted size-4 animate-pulse rounded" />
+      <div className="bg-[#444933] size-4 animate-pulse rounded" />
       <div className="flex flex-1 items-center gap-1">
-        <div className="bg-muted size-7 animate-pulse rounded" />
-        <div className="bg-muted h-9 flex-1 animate-pulse rounded" />
-        <div className="bg-muted size-7 animate-pulse rounded" />
+        <div className="bg-[#282b1d] size-7 animate-pulse rounded" />
+        <div className="bg-[#282b1d] h-9 flex-1 animate-pulse rounded" />
+        <div className="bg-[#282b1d] size-7 animate-pulse rounded" />
       </div>
-      <div className="bg-muted size-7 animate-pulse rounded" />
+      <div className="bg-[#282b1d] size-7 animate-pulse rounded" />
     </div>
   );
 }
