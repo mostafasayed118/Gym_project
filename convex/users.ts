@@ -1,6 +1,6 @@
 import { query, mutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
-import { requireRole } from "./auth";
+import { requireRole, requireSelf } from "./auth";
 import { api, internal } from "./_generated/api";
 
 function getWeekStart(): string {
@@ -22,6 +22,8 @@ function daysSince(dateString: string | null): number | null {
 export const getCoachClients = query({
   args: { coachId: v.id("users") },
   handler: async (ctx, args) => {
+    // Authorization check - callers may only view their own roster (admins bypass)
+    await requireSelf(ctx, args.coachId);
     const clients = await ctx.db
       .query("users")
       .withIndex("by_coachId", (q) => q.eq("coachId", args.coachId))
@@ -90,6 +92,8 @@ export const getCoachClients = query({
 export const getCoachMetrics = query({
   args: { coachId: v.id("users") },
   handler: async (ctx, args) => {
+    // Authorization check - callers may only view their own metrics (admins bypass)
+    await requireSelf(ctx, args.coachId);
     const clients = await ctx.db
       .query("users")
       .withIndex("by_coachId", (q) => q.eq("coachId", args.coachId))
