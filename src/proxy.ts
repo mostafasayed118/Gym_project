@@ -50,7 +50,9 @@ function isPublicPath(pathname: string): boolean {
     pathname.startsWith("/sign-in") ||
     pathname.startsWith("/sign-up") ||
     pathname.startsWith("/api/webhooks") ||
-    pathname.startsWith("/api/health")
+    pathname.startsWith("/api/health") ||
+    // Vercel cron hits are unauthenticated but bearer-guarded (CRON_SECRET).
+    pathname.startsWith("/api/cron")
   );
 }
 
