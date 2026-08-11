@@ -1,7 +1,9 @@
 import { requireCoachAccess } from "@/lib/auth-server";
+import { auth } from "@clerk/nextjs/server";
 import { SignOutButton } from "@clerk/nextjs";
 
 export default async function CoachPage() {
+  await auth.protect();
   const { role } = await requireCoachAccess();
 
   return (

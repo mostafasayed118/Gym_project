@@ -1,4 +1,5 @@
 import { requireCoachAccess } from "@/lib/auth-server";
+import { auth } from "@clerk/nextjs/server";
 import { PlanBuilderForm } from "@/features/plan-builder/plan-builder-form";
 
 interface PageProps {
@@ -6,6 +7,7 @@ interface PageProps {
 }
 
 export default async function NewClientPlanPage({ params }: PageProps) {
+  await auth.protect();
   await requireCoachAccess();
   const { clientId } = await params;
 

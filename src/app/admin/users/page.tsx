@@ -1,11 +1,13 @@
 import { UsersDataTable } from "@/components/admin/users/users-data-table";
+import { auth } from "@clerk/nextjs/server";
 
 export const metadata = {
   title: "Users Directory — GymPro Admin",
   description: "Manage users, roles, and coach assignments.",
 };
 
-export default function AdminUsersPage() {
+export default async function AdminUsersPage() {
+  await auth.protect();
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
       {/* Page header */}

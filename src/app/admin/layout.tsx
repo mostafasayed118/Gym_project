@@ -1,4 +1,5 @@
 import { requireRole, getUserProfile } from "@/lib/auth-server";
+import { auth } from "@clerk/nextjs/server";
 import { AdminHeader } from "./admin-header";
 import { SidebarNav } from "@/components/sidebar-nav";
 
@@ -11,6 +12,7 @@ export default async function AdminLayout({
   // `user` prop in the admin layout, so admin users saw the user-role
   // sidebar (no Admin link, no Coach Hub). Passing `user` lets the nav
   // surface the role-scoped items the requireRole call already verified.
+  await auth.protect();
   const { session, role } = await requireRole(["admin"]);
   const user = await getUserProfile(session.userId);
 

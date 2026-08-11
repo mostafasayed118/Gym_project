@@ -1,7 +1,9 @@
 import { requireCoachAccess } from "@/lib/auth-server";
+import { auth } from "@clerk/nextjs/server";
 import { AssignClientForm } from "./client-form";
 
 export default async function NewClientPage() {
+  await auth.protect();
   await requireCoachAccess();
 
   return (

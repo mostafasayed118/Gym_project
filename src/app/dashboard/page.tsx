@@ -1,8 +1,10 @@
 import { requireAuth } from "@/lib/auth-server";
+import { auth } from "@clerk/nextjs/server";
 import Link from "next/link";
 import { SignOutButton } from "@clerk/nextjs";
 
 export default async function DashboardPage() {
+  await auth.protect();
   await requireAuth();
 
   return (

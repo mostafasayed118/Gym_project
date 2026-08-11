@@ -45,6 +45,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@clerk/eslint-plugin": "^0.2.0",
     "@next/bundle-analyzer": "^16.2.9",
     "@playwright/test": "^1.61.0",
     "@storybook/addon-essentials": "^8.6.14",

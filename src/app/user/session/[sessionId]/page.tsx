@@ -1,4 +1,5 @@
 import { requireAuth } from "@/lib/auth-server";
+import { auth } from "@clerk/nextjs/server";
 import { SessionTracker } from "@/components/user/session/session-tracker";
 
 interface SessionPageProps {
@@ -6,6 +7,7 @@ interface SessionPageProps {
 }
 
 export default async function SessionPage({ params }: SessionPageProps) {
+  await auth.protect();
   await requireAuth();
 
   const { sessionId } = await params;
