@@ -1,5 +1,35 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## 🔐 Security Model
+
+GymPro is a **multi-user** coaching platform with three roles — `user`, `coach`, and
+`admin` — authenticated through [Clerk](https://clerk.com). Every layer (pages,
+Convex functions, webhooks) enforces its own gate; no layer trusts another.
+
+| Claim | Reality |
+|---|---|
+| **Authentication** | ✅ Clerk via Convex auth (`convex/auth.config.ts`). JWTs are validated against `CLERK_JWT_ISSUER` on the Convex deployment. |
+| **Route gating** | ✅ Every protected page/layout calls `auth.protect()` plus the `requireAuth()` / `requireRole()` / `requireCoachAccess()` gates in `src/lib/auth-server.ts`. Unprotected resources under protected folders **fail CI** (`@clerk/eslint-plugin` `require-auth-protection`). |
+| **Convex data access** | ✅ Handlers call `requireIdentity()` / `requireSelf()` (`convex/auth.ts`) — e.g. coach roster/metrics queries reject callers other than the requesting coach (IDOR-closed). |
+| **Webhook / machine surfaces** | ✅ `subscriptions` mutations require the shared `CONVEX_BILLING_WEBHOOK_SECRET` ("Forbidden: invalid billing secret"); webhook-only lookups (`getAuthContextByClerkId`, Stripe lookups) are `internalFunction`s or secret-guarded. `/api/webhooks/*` is svix-signature verified. |
+| **Public by design** | ✅ Landing page + sign-in/sign-up, `/api/health` (deep probe), and `/api/cron/health` (bearer `CRON_SECRET`, alerts via `ALERT_WEBHOOK_URL`). |
+
+**Required environment variables:**
+
+| Variable | Where | Purpose |
+|---|---|---|
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` / `CLERK_SECRET_KEY` | `.env.local` | Clerk client/server |
+| `CLERK_WEBHOOK_SECRET` | `.env.local` + Convex env | svix webhook verification |
+| `CLERK_JWT_ISSUER` | Convex deployment env | Convex validates Clerk JWTs |
+| `CONVEX_BILLING_WEBHOOK_SECRET` | Convex deployment env | guards `subscriptions` webhook mutations |
+| `CRON_SECRET` / `ALERT_WEBHOOK_URL` | `.env.local` + Vercel | `/api/cron/health` bearer guard + outage alerts |
+
+⚠️ **Known hardening items** (from the 2026 security audit): `auth.syncUser`
+still trusts anonymous calls as "webhooks" — an attacker can mint an admin account
+(proven live, the last critical in this project). `auth.getUserByClerkId`
+enumerates users anonymously, and the `push.*` lookups plus email/push actions
+are public server-only surfaces that should be `internalFunction`s.
+
 ## Getting Started
 
 First, run the development server:
