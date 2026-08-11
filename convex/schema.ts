@@ -2,6 +2,7 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 const roleValidator = v.union(v.literal("admin"), v.literal("coach"), v.literal("user"));
+const userStatusValidator = v.union(v.literal("active"), v.literal("suspended"));
 
 export default defineSchema({
   users: defineTable({
@@ -9,6 +10,7 @@ export default defineSchema({
     email: v.string(),
     name: v.string(),
     role: roleValidator,
+    status: v.optional(userStatusValidator),
     avatarUrl: v.optional(v.string()),
     coachId: v.optional(v.id("users")),
     createdAt: v.number(),
@@ -39,6 +41,7 @@ export default defineSchema({
   })
     .index("by_coachId", ["coachId"])
     .index("by_clientId", ["clientId"])
+    .index("by_clientId_status", ["clientId", "status"])
     .index("by_status", ["status"]),
 
   planItems: defineTable({
@@ -73,6 +76,8 @@ export default defineSchema({
     notes: v.optional(v.string()),
   })
     .index("by_clientId", ["clientId"])
+    .index("by_clientId_date", ["clientId", "date"])
+    .index("by_clientId_completed", ["clientId", "completed"])
     .index("by_coachId", ["coachId"])
     .index("by_planId", ["planId"])
     .index("by_date", ["date"]),
@@ -89,6 +94,93 @@ export default defineSchema({
   })
     .index("by_sessionId", ["sessionId"])
     .index("by_sessionId_exerciseName", ["sessionId", "exerciseName"]),
+
+  conversations: defineTable({
+    participantIds: v.array(v.id("users")),
+    lastMessageAt: v.number(),
+    lastMessageBody: v.optional(v.string()),
+    lastMessageSenderId: v.optional(v.id("users")),
+  })
+    .index("by_participant", ["participantIds"])
+    .index("by_lastMessageAt", ["lastMessageAt"]),
+
+  messages: defineTable({
+    conversationId: v.id("conversations"),
+    senderId: v.id("users"),
+    body: v.string(),
+    readBy: v.array(v.id("users")),
+  })
+    .index("by_conversationId", ["conversationId"])
+    .index("by_conversationId_createdAt", ["conversationId"]),
+
+  typingIndicators: defineTable({
+    conversationId: v.id("conversations"),
+    userId: v.id("users"),
+    expiresAt: v.number(),
+  })
+    .index("by_conversationId", ["conversationId"])
+    .index("by_conversationId_userId", ["conversationId", "userId"]),
+
+  userStats: defineTable({
+    userId: v.id("users"),
+    currentStreak: v.number(),
+    maxStreak: v.number(),
+    totalVolume: v.number(),
+    totalSessions: v.number(),
+    badges: v.array(
+      v.object({
+        id: v.string(),
+        name: v.string(),
+        unlockedAt: v.number(),
+      }),
+    ),
+    lastWorkoutDate: v.optional(v.string()),
+  })
+    .index("by_userId", ["userId"]),
+
+  checkins: defineTable({
+    userId: v.id("users"),
+    weekNumber: v.number(),
+    weight: v.optional(v.number()),
+    bodyFat: v.optional(v.number()),
+    notes: v.optional(v.string()),
+    photoStorageIds: v.array(v.id("_storage")),
+    status: v.union(v.literal("pending"), v.literal("submitted"), v.literal("reviewed")),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_userId_weekNumber", ["userId", "weekNumber"]),
+
+  auditLogs: defineTable({
+    actorId: v.id("users"),
+    action: v.string(),
+    targetEntity: v.string(),
+    targetId: v.string(),
+    metadata: v.optional(v.any()),
+    timestamp: v.number(),
+  })
+    .index("by_actorId", ["actorId"])
+    .index("by_action", ["action"])
+    .index("by_timestamp", ["timestamp"]),
+
+  pushSubscriptions: defineTable({
+    userId: v.id("users"),
+    endpoint: v.string(),
+    p256dh: v.string(),
+    auth: v.string(),
+    enabled: v.boolean(),
+  })
+    .index("by_userId", ["userId"]),
+
+  notificationPreferences: defineTable({
+    userId: v.id("users"),
+    workoutReminders: v.boolean(),
+    checkinReminders: v.boolean(),
+    messageNotifications: v.boolean(),
+    reminderTime: v.string(),
+  })
+    .index("by_userId", ["userId"]),
 
   progress: defineTable({
     clientId: v.id("users"),
@@ -108,5 +200,49 @@ export default defineSchema({
     photos: v.optional(v.array(v.string())),
   })
     .index("by_clientId", ["clientId"])
+    .index("by_clientId_date", ["clientId", "date"])
     .index("by_date", ["date"]),
+
+  subscriptions: defineTable({
+    userId: v.id("users"),
+    stripeSubscriptionId: v.string(),
+    stripeCustomerId: v.string(),
+    status: v.union(
+      v.literal("active"),
+      v.literal("past_due"),
+      v.literal("canceled"),
+      v.literal("trialing"),
+    ),
+    priceId: v.string(),
+    currentPeriodStart: v.number(),
+    currentPeriodEnd: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+    // Stripe event.created (UNIX seconds) of the most recently applied event.
+    // Used by the Stripe webhook to reject out-of-order deliveries
+    // (closes BUG-006).
+    lastWebhookEventAt: v.optional(v.number()),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_stripeSubscriptionId", ["stripeSubscriptionId"])
+    // Replaces the full-table scan in `findByStripeCustomerId` (closes BUG-030).
+    .index("by_stripeCustomerId", ["stripeCustomerId"]),
+
+  rateLimits: defineTable({
+    key: v.string(),
+    count: v.number(),
+    expiresAt: v.number(),
+  })
+    .index("by_key", ["key"])
+    .index("by_key_expiresAt", ["key", "expiresAt"]),
+
+  // Webhook idempotency ledger. Insert-or-throw on `(provider, eventId)` so
+  // Svix/Stripe retries do not re-fire downstream effects (closes BUG-022).
+  processedWebhookEvents: defineTable({
+    provider: v.union(v.literal("stripe"), v.literal("clerk")),
+    eventId: v.string(),
+    eventType: v.string(),
+    eventCreated: v.optional(v.number()),
+    processedAt: v.number(),
+  }).index("by_provider_eventId", ["provider", "eventId"]),
 });

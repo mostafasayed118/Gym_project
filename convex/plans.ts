@@ -1,5 +1,7 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
+import { requireRole, requireIdentity } from "./auth";
+import { requireActiveSubscription } from "./subscriptions";
 
 const exerciseValidator = v.object({
   name: v.string(),
@@ -9,33 +11,41 @@ const exerciseValidator = v.object({
   targetWeight: v.number(),
 });
 
-export const list = query({
-  args: {},
-  handler: async (ctx) => {
-    const plans = await ctx.db.query("plans").collect();
-    return plans;
-  },
-});
+// NOTE: The legacy unauthenticated `list` query (full-table dump of every
+// plan in the system) has been removed. Use admin-scoped tooling for that.
+// Closes BUG-055.
 
 export const getByClient = query({
   args: { clientId: v.id("users") },
   handler: async (ctx, args) => {
-    const plans = await ctx.db
+    const caller = await requireIdentity(ctx);
+    if (caller._id !== args.clientId && caller.role !== "admin") {
+      if (caller.role !== "coach") {
+        throw new Error("Forbidden: cannot read another user's plans");
+      }
+      const target = await ctx.db.get(args.clientId);
+      if (!target || target.coachId !== caller._id) {
+        throw new Error("Forbidden: not the assigned coach for this client");
+      }
+    }
+    return await ctx.db
       .query("plans")
       .withIndex("by_clientId", (q) => q.eq("clientId", args.clientId))
       .collect();
-    return plans;
   },
 });
 
 export const getByCoach = query({
   args: { coachId: v.id("users") },
   handler: async (ctx, args) => {
-    const plans = await ctx.db
+    const caller = await requireIdentity(ctx);
+    if (caller._id !== args.coachId && caller.role !== "admin") {
+      throw new Error("Forbidden: cannot read another coach's plans");
+    }
+    return await ctx.db
       .query("plans")
       .withIndex("by_coachId", (q) => q.eq("coachId", args.coachId))
       .collect();
-    return plans;
   },
 });
 
@@ -59,6 +69,13 @@ export const create = mutation({
     endDate: v.string(),
   },
   handler: async (ctx, args) => {
+    await requireRole(ctx, ["coach", "admin"]);
+
+    // Validate date ordering
+    if (args.startDate > args.endDate) {
+      throw new Error("Start date must be before end date");
+    }
+
     const planId = await ctx.db.insert("plans", {
       ...args,
       status: "active",
@@ -75,6 +92,17 @@ export const update = mutation({
     status: v.optional(v.union(v.literal("active"), v.literal("completed"), v.literal("archived"))),
   },
   handler: async (ctx, args) => {
+    const caller = await requireRole(ctx, ["coach", "admin"]);
+
+    const plan = await ctx.db.get(args.id);
+    if (!plan) throw new Error("Plan not found");
+
+    // Coach-ownership check — closes BUG-027 (any coach could archive any
+    // other coach's plans).
+    if (caller.role === "coach" && plan.coachId !== caller._id) {
+      throw new Error("Forbidden: cannot edit another coach's plan");
+    }
+
     const { id, ...fields } = args;
     const updates: Record<string, unknown> = {};
     if (fields.title !== undefined) updates.title = fields.title;
@@ -100,6 +128,17 @@ export const createPlanWithItems = mutation({
     exercises: v.array(exerciseValidator),
   },
   handler: async (ctx, args) => {
+    await requireRole(ctx, ["coach", "admin"]);
+
+    // Billing gate — the coach the plan is attributed to must have an active
+    // subscription. Admins bypass via the helper's admin-bypass branch.
+    await requireActiveSubscription(ctx, args.coachId);
+
+    // Validate date ordering
+    if (args.startDate > args.endDate) {
+      throw new Error("Start date must be before end date");
+    }
+
     const planId = await ctx.db.insert("plans", {
       coachId: args.coachId,
       clientId: args.clientId,
@@ -129,14 +168,31 @@ export const createPlanWithItems = mutation({
 /**
  * Returns the client's most recent active plan with all its items grouped by day.
  * Used by the User Dashboard for real-time plan display.
+ *
+ * Identity-gated: only the client themselves, their assigned coach, or an
+ * admin may read. Closes BUG-008 (was an unauthenticated PII exfiltration —
+ * anyone with the public Convex URL could pull any user's full plan).
  */
 export const getActivePlanWithItems = query({
   args: { clientId: v.id("users") },
   handler: async (ctx, args) => {
+    const caller = await requireIdentity(ctx);
+    if (caller._id !== args.clientId && caller.role !== "admin") {
+      if (caller.role !== "coach") {
+        throw new Error("Forbidden: cannot read another user's active plan");
+      }
+      const target = await ctx.db.get(args.clientId);
+      if (!target || target.coachId !== caller._id) {
+        throw new Error("Forbidden: not the assigned coach for this client");
+      }
+    }
+
+    // Use the composite index for a single seek instead of a scan+filter.
     const plan = await ctx.db
       .query("plans")
-      .withIndex("by_clientId", (q) => q.eq("clientId", args.clientId))
-      .filter((q) => q.eq(q.field("status"), "active"))
+      .withIndex("by_clientId_status", (q) =>
+        q.eq("clientId", args.clientId).eq("status", "active"),
+      )
       .order("desc")
       .first();
 
