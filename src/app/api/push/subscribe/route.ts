@@ -7,6 +7,7 @@ const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
 if (!convexUrl) throw new Error("NEXT_PUBLIC_CONVEX_URL is not set");
 const convex = new ConvexHttpClient(convexUrl);
 
+// eslint-disable-next-line @clerk/next/require-auth-protection -- Route handler performs its own in-handler auth() + 401 check (JSON contract, not a protect() redirect).
 export async function POST(request: NextRequest) {
   try {
     // Verify the caller is authenticated
