@@ -88,7 +88,13 @@ async function deleteUser(args: { clerkId: string }): Promise<void> {
 async function sendWelcomeEmail(args: { email: string; name: string }): Promise<void> {
   if (!args.email) return;
   try {
-    await convex.action(api.emailActions.sendWelcomeEmail, args);
+    // The action requires the billing webhook secret as defense-in-depth —
+    // the Svix signature was already verified above, and this prevents
+    // direct public-API calls from spamming arbitrary inboxes.
+    await convex.action(api.emailActions.sendWelcomeEmail, {
+      ...args,
+      secret: process.env.CONVEX_BILLING_WEBHOOK_SECRET ?? "",
+    });
   } catch (err) {
     // Email failure must NOT 500 the webhook (would trigger Svix retries
     // and re-run syncUser unnecessarily). Log and move on.

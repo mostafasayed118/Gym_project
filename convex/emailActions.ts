@@ -1,7 +1,7 @@
 "use node"
 
 import { action, internalAction } from "./_generated/server"
-import { api, internal } from "./_generated/api"
+import { internal } from "./_generated/api"
 import { v } from "convex/values"
 import nodemailer from "nodemailer"
 
@@ -240,8 +240,23 @@ export const sendWelcomeEmail = action({
   args: {
     email: v.string(),
     name: v.string(),
+    secret: v.string(),
   },
   handler: async (_ctx, args) => {
+    // Shared-secret guard: only the webhook routes (which verify their
+    // signatures first and pass CONVEX_BILLING_WEBHOOK_SECRET) may send mail
+    // to arbitrary addresses. Without this, anyone with the public Convex URL
+    // could spam arbitrary inboxes via the project's mail quota.
+    const expected = process.env.CONVEX_BILLING_WEBHOOK_SECRET;
+    if (!expected) {
+      throw new Error(
+        "CONVEX_BILLING_WEBHOOK_SECRET is not configured in the Convex deployment",
+      );
+    }
+    if (args.secret !== expected) {
+      throw new Error("Forbidden: invalid webhook secret");
+    }
+
     return await sendEmail({
       to: args.email,
       subject: "Welcome to GymPro! 💪",
@@ -250,8 +265,14 @@ export const sendWelcomeEmail = action({
   },
 })
 
-/** Send weekly summary email */
-export const sendWeeklySummary = action({
+/**
+ * Send one weekly summary email.
+ *
+ * Internal — invoked only by the cron fan-out (sendWeeklySummaryChunk), never
+ * from the browser. Previously public, it let anyone with the public Convex
+ * URL mail arbitrary addresses at the project's expense.
+ */
+export const sendWeeklySummary = internalAction({
   args: {
     email: v.string(),
     name: v.string(),
@@ -364,7 +385,7 @@ export const sendWeeklySummaryChunk = internalAction({
 
         if (sessionsCompleted === 0 && prsThisWeek === 0) continue
 
-        const ok = await ctx.runAction(api.emailActions.sendWeeklySummary, {
+        const ok = await ctx.runAction(internal.emailActions.sendWeeklySummary, {
           email: u.email,
           name: u.name,
           sessionsCompleted,
@@ -386,26 +407,4 @@ export const sendWeeklySummaryChunk = internalAction({
 })
 
 /** Send workout reminder email */
-export const sendWorkoutReminder = action({
-  args: {
-    email: v.string(),
-    name: v.string(),
-    coachName: v.string(),
-  },
-  handler: async (_ctx, args) => {
-    const safeName = escapeHtml(args.name)
-    const safeCoachName = escapeHtml(args.coachName)
-    const html = emailShell(`
-      <h1 class="g-title" style="margin:0 0 16px 0;font-size:24px;font-weight:800;color:${BRAND.text};letter-spacing:-0.01em;">Time to Workout! 💪</h1>
-      <p class="g-text" style="margin:0 0 12px 0;color:${BRAND.muted};">Hi ${safeName},</p>
-      <p class="g-text" style="margin:0 0 8px 0;color:${BRAND.muted};">Your coach <strong style="color:${BRAND.text};">${safeCoachName}</strong> has a workout ready for you today. Don't keep your gains waiting!</p>
-      ${emailButton(appUrl("/user/session"), "Start Workout")}
-    `)
 
-    return await sendEmail({
-      to: args.email,
-      subject: "Time to Workout! 💪",
-      html,
-    })
-  },
-})
