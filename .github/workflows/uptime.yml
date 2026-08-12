@@ -1,0 +1,63 @@
+name: Uptime Monitor
+
+# External uptime monitor that replaced the Vercel cron (vercel.json was
+# removed because Hobby plan allows only one cron/day). GitHub's own
+# infrastructure probes the production app every 5 minutes — the same cadence
+# the Vercel cron used — and alerts on any outage.
+#
+# Alert channels:
+#   1. GitHub's default workflow-failure notifications (email to repo watchers)
+#      fire whenever this job fails.
+#   2. If a Slack/Discord/Teams-style incoming webhook is stored as the
+#      ALERT_WEBHOOK_URL repository secret, a `{ "text": ... }` payload is
+#      POSTed to it on failure (same convention as /api/cron/health).
+#
+# Note: GitHub pauses scheduled workflows after 60 days of repository
+# inactivity. Any push/PR activity to this repo keeps the monitor running.
+
+on:
+  schedule:
+    # Every 5 minutes — GitHub Actions' minimum interval.
+    - cron: "*/5 * * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    name: Probe /api/health?deep=true
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Deep health probe
+        id: probe
+        run: |
+          code=$(curl -s -o /tmp/health.json -w "%{http_code}" --max-time 30 \
+            "https://gym-project-azure.vercel.app/api/health?deep=true" || true)
+          body=$(cat /tmp/health.json)
+          echo "HTTP $code: $body"
+          # Fail unless we got a 200 whose body reports the Convex backend as ok.
+          if [ "$code" != "200" ]; then
+            echo "::error::Deep health probe returned HTTP $code (expected 200)"
+            exit 1
+          fi
+          if ! echo "$body" | grep -q '"convex":"ok"'; then
+            echo "::error::Deep health probe did not report convex:ok"
+            exit 1
+          fi
+          echo "probe=ok" >> "$GITHUB_OUTPUT"
+
+      - name: Send webhook alert on failure
+        if: failure()
+        env:
+          ALERT_WEBHOOK_URL: ${{ secrets.ALERT_WEBHOOK_URL }}
+        run: |
+          if [ -z "$ALERT_WEBHOOK_URL" ]; then
+            echo "ALERT_WEBHOOK_URL not set — relying on GitHub failure notifications"
+            exit 0
+          fi
+          curl -s -o /dev/null -w "webhook status=%{http_code}\n" --max-time 15 \
+            -X POST "$ALERT_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -d "{\"text\":\"🚨 GymPro outage detected: /api/health?deep=true failed at $(date -u +%Y-%m-%dT%H:%M:%SZ). Check https://gym-project-azure.vercel.app/api/health?deep=true\"}"
