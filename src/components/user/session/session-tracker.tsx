@@ -203,6 +203,8 @@ export function SessionTracker({ sessionId }: SessionTrackerProps) {
                 targetSets: exercise.sets.length,
                 targetReps: exercise.sets[0]?.reps ?? 10,
                 targetWeight: exercise.sets[0]?.weight ?? 0,
+                gifUrl: exercise.gifUrl,
+                instructions: exercise.instructions,
               }}
               loggedSets={exerciseLoggedSets}
             />

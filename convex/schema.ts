@@ -88,6 +88,10 @@ export default defineSchema({
     exercises: v.array(
       v.object({
         name: v.string(),
+        // ExerciseDB catalog link, carried over from the plan item when the
+        // session was created. Lets getSessionWithSets join the demo GIF +
+        // instructions the same way the plan view does.
+        exerciseDbId: v.optional(v.string()),
         sets: v.array(
           v.object({
             reps: v.number(),

@@ -173,6 +173,9 @@ export const createForToday = mutation({
 
     const exercises = todayItems.map((item) => ({
       name: item.exerciseName,
+      // Keep the ExerciseDB catalog link so getSessionWithSets can join the
+      // demo GIF + instructions for this exercise during the session.
+      exerciseDbId: item.exerciseDbId ?? undefined,
       sets: Array.from({ length: item.targetSets }, () => ({
         reps: item.targetReps,
         weight: item.targetWeight,
@@ -294,8 +297,47 @@ export const getSessionWithSets = query({
       .withIndex("by_sessionId", (q) => q.eq("sessionId", args.sessionId))
       .collect();
 
+    // Join the ExerciseDB catalog rows (GIF + instructions) for any exercise
+    // picked from the synced catalog, mirroring getActivePlanWithItems.
+    // Sessions created before this field existed simply render without media.
+    const catalogIds = Array.from(
+      new Set(
+        session.exercises
+          .map((ex) => ex.exerciseDbId)
+          .filter((id): id is string => !!id),
+      ),
+    );
+    const catalogByDbId = new Map<
+      string,
+      { gifUrl?: string; instructions?: string[] }
+    >();
+    for (const dbId of catalogIds) {
+      const row = await ctx.db
+        .query("exercises")
+        .withIndex("by_exerciseDbId", (q) => q.eq("exerciseDbId", dbId))
+        .first();
+      if (row) {
+        catalogByDbId.set(dbId, {
+          gifUrl: row.gifUrl,
+          instructions: row.instructions,
+        });
+      }
+    }
+
+    const exercises = session.exercises.map((ex) => {
+      const catalog = ex.exerciseDbId
+        ? catalogByDbId.get(ex.exerciseDbId)
+        : undefined;
+      return {
+        ...ex,
+        gifUrl: catalog?.gifUrl,
+        instructions: catalog?.instructions,
+      };
+    });
+
     return {
       ...session,
+      exercises,
       loggedSets: sets,
     };
   },

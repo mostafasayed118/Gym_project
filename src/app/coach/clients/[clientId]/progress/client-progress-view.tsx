@@ -4,8 +4,11 @@ import { useQuery } from "convex/react";
 import { api } from "@convex/_generated/api";
 import {
   ArrowLeft,
+  CalendarDays,
+  Dumbbell,
   Flame,
   Trophy,
+  UserRound,
   Zap,
 } from "lucide-react";
 import Link from "next/link";
@@ -23,6 +26,8 @@ import {
   RecentSessionsFeedSkeleton,
 } from "@/components/coach/recent-sessions-feed";
 import { Stagger } from "@/components/animations/stagger";
+import { ExerciseMedia } from "@/components/exercise-media";
+import type { ActivePlanData } from "@/hooks/use-active-plan";
 import type { Id } from "@convex/_generated/dataModel";
 
 interface ClientProgressViewProps {
@@ -35,7 +40,14 @@ export function ClientProgressView({ clientId }: ClientProgressViewProps) {
     { clientId },
   );
 
-  const isLoading = dashboard === undefined;
+  // The client's active plan — already catalog-enriched (GIF + instructions)
+  // and identity-gated for the assigned coach by getActivePlanWithItems.
+  const activePlan = useQuery(
+    api.plans.getActivePlanWithItems,
+    { clientId },
+  );
+
+  const isLoading = dashboard === undefined || activePlan === undefined;
 
   if (isLoading) {
     return <ProgressDashboardSkeleton />;
@@ -90,6 +102,9 @@ export function ClientProgressView({ clientId }: ClientProgressViewProps) {
       </header>
 
       <main className="flex flex-1 flex-col gap-6 p-4">
+        {/* Active Plan — the coach's plan view, with ExerciseDB GIFs + instructions */}
+        <ActivePlanSection activePlan={activePlan} clientId={clientId} />
+
         {/* Metric Cards */}
         <Stagger className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <Card className="border-zinc-800/80 bg-zinc-900/50 backdrop-blur-xl">
@@ -191,6 +206,111 @@ export function ClientProgressView({ clientId }: ClientProgressViewProps) {
         </div>
       </main>
     </div>
+  );
+}
+
+interface ActivePlanSectionProps {
+  activePlan: ActivePlanData | null;
+  clientId: Id<"users">;
+}
+
+function ActivePlanSection({ activePlan, clientId }: ActivePlanSectionProps) {
+  if (!activePlan) {
+    return (
+      <Card className="border-zinc-800/80 bg-zinc-900/50 backdrop-blur-xl">
+        <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
+          <div className="flex size-12 items-center justify-center rounded-xl bg-zinc-800/60">
+            <CalendarDays className="size-5 text-muted-foreground" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold">No active plan</p>
+            <p className="mt-1 max-w-sm text-xs text-muted-foreground">
+              Assign this client a workout program to see it here with demo
+              GIFs and instructions.
+            </p>
+          </div>
+          <Button
+            variant="gradient"
+            size="sm"
+            nativeButton={false}
+            render={<Link href={`/coach/clients/${clientId}/plan/new`} />}
+          >
+            Create Plan
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="border-zinc-800/80 bg-zinc-900/50 backdrop-blur-xl">
+      <CardHeader>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="flex size-10 items-center justify-center rounded-xl bg-[oklch(0.85_0.2_145/0.1)]">
+              <Dumbbell className="size-5 text-[oklch(0.85_0.2_145)]" />
+            </div>
+            <div>
+              <CardTitle className="text-sm font-bold tracking-tight">
+                Active Plan
+              </CardTitle>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {activePlan.plan.title}
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+            {activePlan.coach && (
+              <span className="flex items-center gap-1.5">
+                <UserRound className="size-3.5" />
+                {activePlan.coach.name}
+              </span>
+            )}
+            <span className="flex items-center gap-1.5">
+              <CalendarDays className="size-3.5" />
+              {activePlan.plan.startDate} &rarr; {activePlan.plan.endDate}
+            </span>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        {activePlan.days.map((day) => (
+          <div
+            key={day.dayOfWeek}
+            className="rounded-xl border border-zinc-800/60 bg-zinc-900/30 p-4"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-bold">{day.dayOfWeek}</span>
+              <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                {day.exercises.length} exercises
+              </span>
+            </div>
+            <div className="mt-3 flex flex-col gap-3">
+              {day.exercises.map((ex) => (
+                <div
+                  key={ex._id}
+                  className="rounded-lg border border-zinc-800/50 bg-zinc-950/40 p-3"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-sm font-medium text-zinc-100">
+                      {ex.exerciseName}
+                    </span>
+                    <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+                      {ex.targetSets}&times;{ex.targetReps} @ {ex.targetWeight}kg
+                    </span>
+                  </div>
+                  <ExerciseMedia
+                    exerciseName={ex.exerciseName}
+                    gifUrl={ex.gifUrl}
+                    instructions={ex.instructions}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
   );
 }
 

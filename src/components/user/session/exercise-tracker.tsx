@@ -9,6 +9,7 @@ import { Dumbbell } from "lucide-react";
 import { SetInput, SetInputSkeleton } from "./set-input";
 import { usePRDetection } from "@/hooks/use-pr-detection";
 import { PRCelebration } from "@/components/gamification/pr-celebration";
+import { ExerciseMedia } from "@/components/exercise-media";
 import type { Id } from "@convex/_generated/dataModel";
 
 interface LoggedSet {
@@ -22,6 +23,10 @@ interface ExerciseData {
   targetSets: number;
   targetReps: number;
   targetWeight: number;
+  // ExerciseDB catalog link — present when the exercise was picked from the
+  // synced catalog. getSessionWithSets joins the demo GIF + instructions.
+  gifUrl?: string;
+  instructions?: string[];
 }
 
 interface ExerciseTrackerProps {
@@ -200,6 +205,12 @@ export const ExerciseTracker = memo(function ExerciseTracker({
           <div className="text-[#c4c9ac] flex items-center gap-4 text-xs font-label-caps">
             <span>Target: {exercise.targetWeight}kg &times; {exercise.targetReps} reps</span>
           </div>
+          {/* Demo GIF + instructions for catalog-picked exercises */}
+          <ExerciseMedia
+            exerciseName={exercise.name}
+            gifUrl={exercise.gifUrl}
+            instructions={exercise.instructions}
+          />
           {rows.map((row) => (
             <SetInput
               key={row.setIndex}

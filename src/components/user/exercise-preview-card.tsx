@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import {
   Dumbbell,
   Flame,
@@ -10,9 +9,9 @@ import {
   Timer,
   Mountain,
   Footprints,
-  ListOrdered,
 } from "lucide-react";
 import type { ExerciseItem } from "@/hooks/use-active-plan";
+import { ExerciseMedia } from "@/components/exercise-media";
 
 interface ExercisePreviewCardProps {
   exercise: ExerciseItem;
@@ -32,10 +31,6 @@ const exerciseIcons = [
 
 export function ExercisePreviewCard({ exercise, index }: ExercisePreviewCardProps) {
   const IconComponent = exerciseIcons[index % exerciseIcons.length] ?? Dumbbell;
-  const [gifFailed, setGifFailed] = useState(false);
-
-  const hasGif = Boolean(exercise.gifUrl) && !gifFailed;
-  const hasInstructions = (exercise.instructions?.length ?? 0) > 0;
 
   return (
     <div
@@ -90,47 +85,12 @@ export function ExercisePreviewCard({ exercise, index }: ExercisePreviewCardProp
       </div>
 
       {/* ExerciseDB media — demo GIF + step-by-step instructions. Only rendered
-          for catalog-picked exercises (exerciseDbId set). The GIF is lazy-loaded
-          and falls back to the icon if it fails (the API rotates gifUrl). */}
-      {(hasGif || hasInstructions) && (
-        <div className="relative mt-4 flex flex-col gap-4 sm:flex-row">
-          {hasGif && (
-            <div className="flex shrink-0 items-center justify-center overflow-hidden rounded-lg border border-[rgba(68,73,51,0.2)] bg-[#0c0f04]/80 sm:w-40">
-              {/* eslint-disable-next-line @next/next/no-img-element -- animated GIFs can't go through next/image's optimizer (it converts to webp/avif and kills the animation) */}
-              <img
-                src={exercise.gifUrl}
-                alt={`${exercise.exerciseName} demo`}
-                loading="lazy"
-                decoding="async"
-                onError={() => setGifFailed(true)}
-                className="h-28 w-full object-cover sm:h-auto"
-              />
-            </div>
-          )}
-
-          {hasInstructions && (
-            <div className="min-w-0 flex-1">
-              <p className="flex items-center gap-1.5 font-label-caps text-[10px] font-medium uppercase tracking-wider text-[#c4c9ac]">
-                <ListOrdered className="size-3 text-[#abd600]" />
-                How to perform
-              </p>
-              <ol className="mt-2 flex flex-col gap-1.5">
-                {exercise.instructions!.map((step, i) => (
-                  <li
-                    key={i}
-                    className="flex gap-2 text-xs leading-relaxed text-[#c4c9ac]"
-                  >
-                    <span className="flex size-4 shrink-0 items-center justify-center rounded-full bg-[#abd600]/10 text-[10px] font-bold text-[#abd600]">
-                      {i + 1}
-                    </span>
-                    <span>{step}</span>
-                  </li>
-                ))}
-              </ol>
-            </div>
-          )}
-        </div>
-      )}
+          for catalog-picked exercises (exerciseDbId set). */}
+      <ExerciseMedia
+        exerciseName={exercise.exerciseName}
+        gifUrl={exercise.gifUrl}
+        instructions={exercise.instructions}
+      />
     </div>
   );
 }
