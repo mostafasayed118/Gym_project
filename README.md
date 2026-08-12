@@ -23,7 +23,7 @@ Convex functions, webhooks) enforces its own gate; no layer trusts another.
 | `CLERK_JWT_ISSUER` | Convex deployment env | Convex validates Clerk JWTs |
 | `CONVEX_BILLING_WEBHOOK_SECRET` | Convex deployment env | guards `subscriptions` webhook mutations |
 | `CRON_SECRET` / `ALERT_WEBHOOK_URL` | `.env.local` + Vercel | `/api/cron/health` bearer guard + outage alerts |
-| `RESEND_API_KEY` / `RESEND_FROM_EMAIL` | Convex deployment env | transactional emails (`emailActions.ts`); the from-address must be a Resend-verified domain |
+| `GMAIL_USER` / `GMAIL_APP_PASSWORD` | Convex deployment env | transactional emails via Gmail SMTP (`emailActions.ts`) |
 | `NEXT_PUBLIC_APP_URL` | `.env.local` + Convex env | base URL for email CTA links |
 
 **Clerk → Convex JWT verification requires the Convex integration to be active in the Clerk dashboard** for the instance named by `CLERK_JWT_ISSUER` (dashboard.clerk.com → Convex integration → *Activate*). Clerk pre-maps the `aud: "convex"` claim into session tokens only when the integration is active — without it, `ctx.auth.getUserIdentity()` returns `null` for every signed-in user even with the provider configured below.
@@ -34,26 +34,23 @@ still trusts anonymous calls as "webhooks" — an attacker can mint an admin acc
 enumerates users anonymously, and the `push.*` lookups plus email/push actions
 are public server-only surfaces that should be `internalFunction`s.
 
-## 📧 Email & Push (Resend)
+## 📧 Email (Gmail SMTP)
 
-Transactional email is sent through [Resend](https://resend.com) via `convex/emailActions.ts`.
+Transactional email is sent from a Gmail account over SMTP with `convex/emailActions.ts` (nodemailer). No sending domain of your own is required — Gmail sends from its own domain.
 
 | Variable | Where | Purpose |
 |---|---|---|
-| `RESEND_API_KEY` | Convex deployment env | API key from https://resend.com/api-keys |
-| `RESEND_FROM_EMAIL` | Convex deployment env | From address, e.g. `GymPro <noreply@yourdomain.com>` — **the domain must be verified in Resend** |
+| `GMAIL_USER` | Convex deployment env | The Gmail address that sends emails, e.g. `al3tar401@gmail.com` |
+| `GMAIL_APP_PASSWORD` | Convex deployment env | A 16-character **App Password** for that account — never your real Gmail password |
 | `NEXT_PUBLIC_APP_URL` | Convex deployment env | Base URL for email CTA links (code falls back to `https://gym-project-azure.vercel.app`) |
 
-**Verifying a domain in Resend** (required — Resend rejects sends from unverified domains, and `gympro.app` is *not* owned):
+**Creating an App Password** (required — Gmail rejects normal passwords over SMTP):
 
-1. Add the domain in the Resend dashboard (e.g. `yourdomain.com`, or a sending subdomain like `mail.yourdomain.com`).
-2. Add these DNS records at your DNS provider:
-   - **SPF** — a TXT record at `@` (or the subdomain): `v=spf1 include:amazonses.com ~all`
-   - **DKIM** — three TXT records at `resend._domainkey`, `resend1._domainkey`, `resend2._domainkey`, each with the `p=<public key>` value Resend displays
-3. Wait for DNS propagation (minutes to a couple of hours), then click **Verify** in Resend.
-4. Set `RESEND_FROM_EMAIL` on the Convex deployment to an address on that domain (e.g. `GymPro <noreply@yourdomain.com>`).
+1. Turn on **2-Step Verification** at https://myaccount.google.com/security if it isn't already on.
+2. Create an App Password at https://myaccount.google.com/apppasswords (select *Mail*).
+3. Set it on the Convex deployment: `npx convex env set GMAIL_APP_PASSWORD <16-char-password> --deployment fleet-mouse-480`.
 
-If no from-address is configured, `sendEmail` **fails closed** with a clear log line instead of attempting a send.
+Emails are sent from `GymPro <GMAIL_USER>`. If the credentials are missing or sending fails, `sendEmail` **fails closed** with a logged error instead of silently dropping mail.
 
 ## Getting Started
 

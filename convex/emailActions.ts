@@ -3,6 +3,7 @@
 import { action, internalAction } from "./_generated/server"
 import { api, internal } from "./_generated/api"
 import { v } from "convex/values"
+import nodemailer from "nodemailer"
 
 // ─── HTML escape (closes BUG-034) ───────────────────────────────────
 
@@ -20,46 +21,38 @@ function escapeHtml(s: string): string {
     .replace(/'/g, "&#39;")
 }
 
-// Resend API client
+// Gmail SMTP client (nodemailer)
+// Sends from the configured Gmail account (GMAIL_USER) using an App Password
+// (GMAIL_APP_PASSWORD) — no sending domain of our own is required.
 async function sendEmail(args: {
   to: string
   subject: string
   html: string
   from?: string
 }): Promise<boolean> {
-  const apiKey = process.env.RESEND_API_KEY
-  if (!apiKey) {
-    console.error("RESEND_API_KEY not configured")
+  const user = process.env.GMAIL_USER
+  const appPassword = process.env.GMAIL_APP_PASSWORD
+  if (!user || !appPassword) {
+    console.error("GMAIL_USER / GMAIL_APP_PASSWORD not configured")
     return false
   }
 
-  const from = args.from || process.env.RESEND_FROM_EMAIL
-  if (!from) {
-    console.error("RESEND_FROM_EMAIL not configured — set it to an address on a domain verified in Resend")
-    return false
-  }
+  const from = args.from || `GymPro <${user}>`
 
   try {
-    const response = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user,
+        pass: appPassword,
       },
-      body: JSON.stringify({
-        from,
-        to: [args.to],
-        subject: args.subject,
-        html: args.html,
-      }),
     })
-
-    if (!response.ok) {
-      const error = await response.text()
-      console.error("Resend API error:", error)
-      return false
-    }
-
+    await transporter.sendMail({
+      from,
+      to: args.to,
+      subject: args.subject,
+      html: args.html,
+    })
     return true
   } catch (error) {
     console.error("Failed to send email:", error)
