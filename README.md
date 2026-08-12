@@ -26,6 +26,8 @@ Convex functions, webhooks) enforces its own gate; no layer trusts another.
 | `RESEND_API_KEY` / `RESEND_FROM_EMAIL` | Convex deployment env | transactional emails (`emailActions.ts`); the from-address must be a Resend-verified domain |
 | `NEXT_PUBLIC_APP_URL` | `.env.local` + Convex env | base URL for email CTA links |
 
+**Clerk → Convex JWT verification requires the Convex integration to be active in the Clerk dashboard** for the instance named by `CLERK_JWT_ISSUER` (dashboard.clerk.com → Convex integration → *Activate*). Clerk pre-maps the `aud: "convex"` claim into session tokens only when the integration is active — without it, `ctx.auth.getUserIdentity()` returns `null` for every signed-in user even with the provider configured below.
+
 ⚠️ **Known hardening items** (from the 2026 security audit): `auth.syncUser`
 still trusts anonymous calls as "webhooks" — an attacker can mint an admin account
 (proven live, the last critical in this project). `auth.getUserByClerkId`
