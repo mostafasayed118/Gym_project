@@ -208,6 +208,26 @@ export const getActivePlanWithItems = query({
 
     const coach = await ctx.db.get(plan.coachId);
 
+    // Join the ExerciseDB catalog rows (GIF + instructions) for any plan item
+    // picked from the synced catalog. Custom/free-text exercises have no
+    // exerciseDbId and render without media.
+    const catalogIds = Array.from(
+      new Set(items.map((i) => i.exerciseDbId).filter((id): id is string => !!id)),
+    );
+    const catalogByDbId = new Map<string, { gifUrl?: string; instructions?: string[] }>();
+    for (const dbId of catalogIds) {
+      const row = await ctx.db
+        .query("exercises")
+        .withIndex("by_exerciseDbId", (q) => q.eq("exerciseDbId", dbId))
+        .first();
+      if (row) {
+        catalogByDbId.set(dbId, {
+          gifUrl: row.gifUrl,
+          instructions: row.instructions,
+        });
+      }
+    }
+
     const dayMap = new Map<string, typeof items>();
     for (const item of items) {
       const existing = dayMap.get(item.dayOfWeek) ?? [];
@@ -217,13 +237,21 @@ export const getActivePlanWithItems = query({
 
     const days = Array.from(dayMap.entries()).map(([dayOfWeek, exercises]) => ({
       dayOfWeek,
-      exercises: exercises.map((ex) => ({
-        _id: ex._id,
-        exerciseName: ex.exerciseName,
-        targetSets: ex.targetSets,
-        targetReps: ex.targetReps,
-        targetWeight: ex.targetWeight,
-      })),
+      exercises: exercises.map((ex) => {
+        const catalog = ex.exerciseDbId
+          ? catalogByDbId.get(ex.exerciseDbId)
+          : undefined;
+        return {
+          _id: ex._id,
+          exerciseName: ex.exerciseName,
+          exerciseDbId: ex.exerciseDbId ?? undefined,
+          gifUrl: catalog?.gifUrl,
+          instructions: catalog?.instructions,
+          targetSets: ex.targetSets,
+          targetReps: ex.targetReps,
+          targetWeight: ex.targetWeight,
+        };
+      }),
     }));
 
     return {

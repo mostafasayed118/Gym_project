@@ -18,6 +18,12 @@ const DAYS_ORDER = [
 export interface ExerciseItem {
   _id: string;
   exerciseName: string;
+  // ExerciseDB catalog link — present only when the exercise was picked from
+  // the synced catalog. Carries the demo GIF + instructions (best-effort: the
+  // API rotates gifUrl periodically).
+  exerciseDbId?: string;
+  gifUrl?: string;
+  instructions?: string[];
   targetSets: number;
   targetReps: number;
   targetWeight: number;
