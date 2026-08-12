@@ -40,6 +40,8 @@ export function ExerciseSearch({
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [debounced, setDebounced] = useState("");
+  const [bodyPartFilter, setBodyPartFilter] = useState<string | null>(null);
+  const [equipmentFilter, setEquipmentFilter] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Debounce the query so we don't fire a Convex search per keystroke.
@@ -50,8 +52,21 @@ export function ExerciseSearch({
 
   const results = useQuery(
     api.exerciseDb.search,
-    open ? { query: debounced || undefined, limit: 12 } : "skip",
+    open
+      ? {
+          query: debounced || undefined,
+          bodyPart: bodyPartFilter || undefined,
+          equipment: equipmentFilter || undefined,
+          limit: 12,
+        }
+      : "skip",
   );
+
+  // Distinct body parts / equipment for the filter chips. Only fetched while
+  // the picker is open — these scan the catalog, so we don't want them running
+  // for every ExerciseRow on the page.
+  const bodyParts = useQuery(api.exerciseDb.listBodyParts, open ? {} : "skip");
+  const equipmentList = useQuery(api.exerciseDb.listEquipment, open ? {} : "skip");
 
   // Close when clicking outside the widget.
   useEffect(() => {
@@ -75,6 +90,8 @@ export function ExerciseSearch({
     setOpen(false);
     setQuery("");
     setDebounced("");
+    setBodyPartFilter(null);
+    setEquipmentFilter(null);
   }
 
   // Enter with no highlighted/selected item commits free text.
@@ -119,6 +136,18 @@ export function ExerciseSearch({
             placeholder={placeholder}
             className="h-10"
           />
+          <FilterChips
+            bodyParts={bodyParts ?? []}
+            equipmentList={equipmentList ?? []}
+            bodyPartFilter={bodyPartFilter}
+            equipmentFilter={equipmentFilter}
+            onToggleBodyPart={(v) =>
+              setBodyPartFilter((cur) => (cur === v ? null : v))
+            }
+            onToggleEquipment={(v) =>
+              setEquipmentFilter((cur) => (cur === v ? null : v))
+            }
+          />
           <CommandList>
             {results === undefined && (
               <div className="flex items-center gap-2 py-4 text-center text-xs text-zinc-500">
@@ -128,9 +157,11 @@ export function ExerciseSearch({
             )}
             {results !== undefined && catalogEmpty && (
               <CommandEmpty>
-                {debounced.trim().length === 0
-                  ? "Catalog is empty — sync it from Mission Control, or type a custom name."
-                  : `No matches for "${debounced}". Press Enter to use it as a custom exercise.`}
+                {debounced.trim().length > 0
+                  ? `No matches for "${debounced}". Press Enter to use it as a custom exercise.`
+                  : bodyPartFilter || equipmentFilter
+                    ? "No exercises match this filter — clear a chip or type a custom name."
+                    : "Catalog is empty — sync it from Mission Control, or type a custom name."}
               </CommandEmpty>
             )}
             {results && results.length > 0 && (
@@ -167,5 +198,69 @@ export function ExerciseSearch({
         </Command>
       )}
     </div>
+  );
+}
+
+// ─── Filter chips ───────────────────────────────────────────────────
+
+interface FilterChipsProps {
+  bodyParts: string[];
+  equipmentList: string[];
+  bodyPartFilter: string | null;
+  equipmentFilter: string | null;
+  onToggleBodyPart: (value: string) => void;
+  onToggleEquipment: (value: string) => void;
+}
+
+/**
+ * Horizontal chip rows for browsing the catalog by muscle group / equipment.
+ * Toggling a chip filters `exerciseDb.search` results; clicking it again
+ * clears the filter. Chips render as soon as the distinct lists load — until
+ * then the row stays out of the way (no layout jump).
+ */
+function FilterChips({
+  bodyParts,
+  equipmentList,
+  bodyPartFilter,
+  equipmentFilter,
+  onToggleBodyPart,
+  onToggleEquipment,
+}: FilterChipsProps) {
+  if (bodyParts.length === 0 && equipmentList.length === 0) return null;
+
+  const row = (label: string, values: string[], active: string | null, onToggle: (v: string) => void) =>
+    values.length > 0 ? (
+      <div className="flex items-center gap-1.5 border-b border-zinc-800/60 px-3 py-2">
+        <span className="shrink-0 text-[9px] font-semibold uppercase tracking-wider text-zinc-600">
+          {label}
+        </span>
+        <div className="flex gap-1 overflow-x-auto pb-0.5">
+          {values.map((v) => {
+            const isActive = active === v;
+            return (
+              <button
+                key={v}
+                type="button"
+                onClick={() => onToggle(v)}
+                className={cn(
+                  "shrink-0 rounded-full border px-2.5 py-0.5 text-[11px] font-medium capitalize transition-colors",
+                  isActive
+                    ? "border-[oklch(0.85_0.2_145)/0.5] bg-[oklch(0.85_0.2_145)/0.15] text-[oklch(0.85_0.2_145)]"
+                    : "border-zinc-800/60 bg-zinc-950/40 text-zinc-500 hover:border-zinc-700/60 hover:text-zinc-300",
+                )}
+              >
+                {v}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    ) : null;
+
+  return (
+    <>
+      {row("Body", bodyParts, bodyPartFilter, onToggleBodyPart)}
+      {row("Gear", equipmentList, equipmentFilter, onToggleEquipment)}
+    </>
   );
 }
