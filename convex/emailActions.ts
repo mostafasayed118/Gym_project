@@ -61,116 +61,177 @@ async function sendEmail(args: {
 }
 
 // Email templates — `name` is HTML-escaped at the call site before interpolation.
-const WELCOME_EMAIL = (name: string) => `
-<!DOCTYPE html>
-<html>
+// ─── Brand-styled email helpers (match the GymPro light design system) ────
+
+const BRAND = {
+  bg: "#F7F8F4",
+  card: "#FFFFFF",
+  border: "#E2E5D8",
+  text: "#1A1C16",
+  muted: "#6B6E5F",
+  primary: "#4A6B00",
+  primaryFg: "#FFFFFF",
+  neon: "#ABD600",
+  soft: "#EEF0E8",
+} as const
+
+const FONT_STACK =
+  "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+
+function appUrl(path: string): string {
+  return `${process.env.NEXT_PUBLIC_APP_URL || "https://gym-project-azure.vercel.app"}${path}`
+}
+
+/** Bulletproof CTA button — table-wrapped so Outlook renders it correctly. */
+function emailButton(href: string, label: string): string {
+  return `
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0 8px 0;">
+        <tr>
+          <td style="border-radius:12px;background-color:${BRAND.primary};">
+            <a href="${href}" style="display:inline-block;padding:14px 30px;background-color:${BRAND.primary};color:${BRAND.primaryFg};text-decoration:none;border-radius:12px;font-weight:700;font-size:15px;line-height:1;">${label}</a>
+          </td>
+        </tr>
+      </table>`
+}
+
+/** 2-column stat grid for the weekly digest (table layout for mail clients). */
+function statGrid(
+  stats: Array<{ value: string; label: string }>,
+): string {
+  const renderCell = (s: { value: string; label: string } | undefined) =>
+    s
+      ? `<td width="50%" style="padding:6px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="g-stat" style="background-color:${BRAND.soft};border-radius:14px;">
+          <tr>
+            <td style="padding:18px 12px;text-align:center;">
+              <div class="g-value" style="font-size:26px;font-weight:800;color:${BRAND.primary};line-height:1.2;">${s.value}</div>
+              <div class="g-text" style="font-size:12px;color:${BRAND.muted};margin-top:4px;">${s.label}</div>
+            </td>
+          </tr>
+        </table>
+      </td>`
+      : `<td width="50%"></td>`
+  const rows: string[] = []
+  for (let i = 0; i < stats.length; i += 2) {
+    rows.push(`<tr>${renderCell(stats[i])}${renderCell(stats[i + 1])}</tr>`)
+  }
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:20px 0 16px 0;">${rows.join("")}</table>`
+}
+
+/** Shared email shell: light theme, brand header, footer, dark-mode support. */
+function emailShell(contentHtml: string): string {
+  const year = new Date().getFullYear()
+  return `<!DOCTYPE html>
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <meta name="supported-color-schemes" content="light dark">
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0a0a0f; color: #e4e4e7; margin: 0; padding: 0; }
-    .container { max-width: 600px; margin: 0 auto; padding: 40px 20px; }
-    .header { text-align: center; margin-bottom: 32px; }
-    .logo { font-size: 32px; font-weight: bold; color: #86efac; }
-    .content { background: #18181b; border-radius: 16px; padding: 32px; border: 1px solid #27272a; }
-    .title { font-size: 24px; font-weight: bold; margin-bottom: 16px; }
-    .text { color: #a1a1aa; line-height: 1.6; margin-bottom: 16px; }
-    .button { display: inline-block; background: #86efac; color: #0a0a0f; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; margin-top: 16px; }
-    .footer { text-align: center; margin-top: 32px; color: #52525b; font-size: 12px; }
+    @media (prefers-color-scheme: dark) {
+      .g-bg { background-color: #16181A !important; }
+      .g-card { background-color: #1F231B !important; border-color: #333A28 !important; }
+      .g-title { color: #F7F8F4 !important; }
+      .g-text { color: #B9BDA9 !important; }
+      .g-stat { background-color: #2B3121 !important; }
+      .g-value { color: #C4E538 !important; }
+      .g-divider { border-top-color: #333A28 !important; }
+    }
   </style>
 </head>
-<body>
-  <div class="container">
-    <div class="header">
-      <div class="logo">GymPro</div>
-    </div>
-    <div class="content">
-      <h1 class="title">Welcome to GymPro! 💪</h1>
-      <p class="text">Hi ${name},</p>
-      <p class="text">We're excited to have you on board! GymPro is your all-in-one platform for tracking workouts, connecting with your coach, and achieving your fitness goals.</p>
-      <p class="text">Here's what you can do:</p>
-      <ul class="text">
-        <li>Track your workouts in real-time</li>
-        <li>View your personalized training plans</li>
-        <li>Message your coach directly</li>
-        <li>Monitor your progress and PRs</li>
-      </ul>
-      <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://gym-project-azure.vercel.app'}/dashboard" class="button">Go to Dashboard</a>
-    </div>
-    <div class="footer">
-      <p>© ${new Date().getFullYear()} GymPro. All rights reserved.</p>
-    </div>
-  </div>
+<body style="margin:0;padding:0;background-color:${BRAND.bg};font-family:${FONT_STACK};">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="g-bg" style="background-color:${BRAND.bg};">
+    <tr>
+      <td align="center" style="padding:32px 16px;">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" class="g-card" style="max-width:600px;width:100%;background-color:${BRAND.card};border:1px solid ${BRAND.border};border-radius:20px;">
+          <tr>
+            <td style="height:6px;background-color:${BRAND.neon};font-size:0;line-height:0;">&nbsp;</td>
+          </tr>
+          <tr>
+            <td style="padding:28px 36px 0 36px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="font-size:24px;font-weight:800;color:${BRAND.primary};letter-spacing:-0.02em;line-height:1;">GymPro<span style="color:${BRAND.neon};">.</span></td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:16px 36px 8px 36px;font-size:15px;line-height:1.65;">
+              ${contentHtml}
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0 36px 28px 36px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td class="g-divider g-text" style="border-top:1px solid ${BRAND.border};padding-top:16px;font-size:12px;color:${BRAND.muted};text-align:center;line-height:1.5;">
+                    © ${year} GymPro. All rights reserved.<br>
+                    You're receiving this email because you have a GymPro account.
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
 </body>
-</html>
-`
+</html>`
+}
+
+const WELCOME_EMAIL = (name: string) => {
+  const features = [
+    "Track your workouts in real-time",
+    "View your personalized training plans",
+    "Message your coach directly",
+    "Monitor your progress and PRs",
+  ]
+  const listItems = features
+    .map(
+      (feature) => `
+        <tr>
+          <td width="28" valign="top" style="padding:6px 0;">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td style="width:20px;height:20px;border-radius:50%;background-color:${BRAND.neon};text-align:center;font-size:12px;color:#09090B;font-weight:800;line-height:20px;">✓</td>
+              </tr>
+            </table>
+          </td>
+          <td class="g-text" style="padding:6px 0 6px 12px;color:${BRAND.muted};font-size:15px;line-height:1.5;">${feature}</td>
+        </tr>`,
+    )
+    .join("")
+  return emailShell(`
+    <h1 class="g-title" style="margin:0 0 16px 0;font-size:24px;font-weight:800;color:${BRAND.text};letter-spacing:-0.01em;">Welcome to GymPro! 💪</h1>
+    <p class="g-text" style="margin:0 0 12px 0;color:${BRAND.muted};">Hi ${name},</p>
+    <p class="g-text" style="margin:0 0 20px 0;color:${BRAND.muted};">We're excited to have you on board. GymPro is your all-in-one platform for tracking workouts, connecting with your coach, and reaching your fitness goals.</p>
+    <p style="margin:0 0 8px 0;font-weight:700;color:${BRAND.text};">Here's what you can do:</p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 8px 0;">${listItems}</table>
+    ${emailButton(appUrl("/dashboard"), "Go to Dashboard")}
+  `)
+}
 
 const WEEKLY_SUMMARY_EMAIL = (name: string, stats: {
   sessionsCompleted: number
   totalVolume: number
   streak: number
   prs: number
-}) => `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0a0a0f; color: #e4e4e7; margin: 0; padding: 0; }
-    .container { max-width: 600px; margin: 0 auto; padding: 40px 20px; }
-    .header { text-align: center; margin-bottom: 32px; }
-    .logo { font-size: 32px; font-weight: bold; color: #86efac; }
-    .content { background: #18181b; border-radius: 16px; padding: 32px; border: 1px solid #27272a; }
-    .title { font-size: 24px; font-weight: bold; margin-bottom: 16px; }
-    .text { color: #a1a1aa; line-height: 1.6; margin-bottom: 16px; }
-    .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 24px 0; }
-    .stat { background: #27272a; border-radius: 12px; padding: 16px; text-align: center; }
-    .stat-value { font-size: 24px; font-weight: bold; color: #86efac; }
-    .stat-label { font-size: 12px; color: #71717a; margin-top: 4px; }
-    .button { display: inline-block; background: #86efac; color: #0a0a0f; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; margin-top: 16px; }
-    .footer { text-align: center; margin-top: 32px; color: #52525b; font-size: 12px; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <div class="logo">GymPro</div>
-    </div>
-    <div class="content">
-      <h1 class="title">Your Weekly Summary 📊</h1>
-      <p class="text">Hi ${name},</p>
-      <p class="text">Here's your workout summary for this week:</p>
-      
-      <div class="stats">
-        <div class="stat">
-          <div class="stat-value">${stats.sessionsCompleted}</div>
-          <div class="stat-label">Sessions</div>
-        </div>
-        <div class="stat">
-          <div class="stat-value">${(stats.totalVolume / 1000).toFixed(1)}k</div>
-          <div class="stat-label">Total Volume (kg)</div>
-        </div>
-        <div class="stat">
-          <div class="stat-value">${stats.streak}</div>
-          <div class="stat-label">Day Streak</div>
-        </div>
-        <div class="stat">
-          <div class="stat-value">${stats.prs}</div>
-          <div class="stat-label">New PRs</div>
-        </div>
-      </div>
-
-      <p class="text">Keep up the great work! Your dedication is paying off.</p>
-      <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://gym-project-azure.vercel.app'}/user/dashboard" class="button">View Dashboard</a>
-    </div>
-    <div class="footer">
-      <p>© ${new Date().getFullYear()} GymPro. All rights reserved.</p>
-    </div>
-  </div>
-</body>
-</html>
-`
+}) => emailShell(`
+    <h1 class="g-title" style="margin:0 0 16px 0;font-size:24px;font-weight:800;color:${BRAND.text};letter-spacing:-0.01em;">Your Weekly Summary 📊</h1>
+    <p class="g-text" style="margin:0 0 12px 0;color:${BRAND.muted};">Hi ${name},</p>
+    <p class="g-text" style="margin:0 0 4px 0;color:${BRAND.muted};">Here's how your training went this week:</p>
+    ${statGrid([
+      { value: String(stats.sessionsCompleted), label: "Sessions completed" },
+      { value: `${(stats.totalVolume / 1000).toFixed(1)}k`, label: "Total volume (kg)" },
+      { value: String(stats.streak), label: "Day streak" },
+      { value: String(stats.prs), label: "New PRs" },
+    ])}
+    <p class="g-text" style="margin:0 0 8px 0;color:${BRAND.muted};">Keep up the great work — your dedication is paying off. 💪</p>
+    ${emailButton(appUrl("/user/dashboard"), "View Dashboard")}
+  `)
 
 // ─── Actions ────────────────────────────────────────────────────────
 
@@ -334,32 +395,12 @@ export const sendWorkoutReminder = action({
   handler: async (_ctx, args) => {
     const safeName = escapeHtml(args.name)
     const safeCoachName = escapeHtml(args.coachName)
-    const html = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <style>
-    body { font-family: -apple-system, sans-serif; background: #0a0a0f; color: #e4e4e7; margin: 0; padding: 0; }
-    .container { max-width: 600px; margin: 0 auto; padding: 40px 20px; }
-    .content { background: #18181b; border-radius: 16px; padding: 32px; border: 1px solid #27272a; }
-    .title { font-size: 24px; font-weight: bold; margin-bottom: 16px; }
-    .text { color: #a1a1aa; line-height: 1.6; margin-bottom: 16px; }
-    .button { display: inline-block; background: #86efac; color: #0a0a0f; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="content">
-      <h1 class="title">Time to Workout! 💪</h1>
-      <p class="text">Hi ${safeName},</p>
-      <p class="text">Your coach ${safeCoachName} has a workout ready for you today. Don't let them down!</p>
-      <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://gym-project-azure.vercel.app'}/user/session" class="button">Start Workout</a>
-    </div>
-  </div>
-</body>
-</html>
-    `
+    const html = emailShell(`
+      <h1 class="g-title" style="margin:0 0 16px 0;font-size:24px;font-weight:800;color:${BRAND.text};letter-spacing:-0.01em;">Time to Workout! 💪</h1>
+      <p class="g-text" style="margin:0 0 12px 0;color:${BRAND.muted};">Hi ${safeName},</p>
+      <p class="g-text" style="margin:0 0 8px 0;color:${BRAND.muted};">Your coach <strong style="color:${BRAND.text};">${safeCoachName}</strong> has a workout ready for you today. Don't keep your gains waiting!</p>
+      ${emailButton(appUrl("/user/session"), "Start Workout")}
+    `)
 
     return await sendEmail({
       to: args.email,
