@@ -47,3 +47,5 @@ next-env.d.ts
 # local secrets / scratch credentials
 /passwords.txt
 /credentials*.txt
+
+.vercel
