@@ -73,7 +73,20 @@ jobs:
             echo "ALERT_WEBHOOK_URL not set — relying on GitHub failure notifications"
             exit 0
           fi
-          curl -s -o /dev/null -w "webhook status=%{http_code}\n" --max-time 15 \
+          msg="🚨 GymPro outage detected: /api/health?deep=true failed at $(date -u +%Y-%m-%dT%H:%M:%SZ). Check https://gym-project-azure.vercel.app/api/health?deep=true"
+          # Slack wants {text}, Discord wants {content} — pick per webhook host.
+          if [[ "$ALERT_WEBHOOK_URL" == *"discord"* ]]; then
+            payload=$(jq -Rn --arg content "$msg" '{content:$content}')
+          else
+            payload=$(jq -Rn --arg text "$msg" '{text:$text}')
+          fi
+          code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 \
             -X POST "$ALERT_WEBHOOK_URL" \
             -H "Content-Type: application/json" \
-            -d "{\"text\":\"🚨 GymPro outage detected: /api/health?deep=true failed at $(date -u +%Y-%m-%dT%H:%M:%SZ). Check https://gym-project-azure.vercel.app/api/health?deep=true\"}"
+            -d "$payload" || true)
+          echo "webhook status=$code"
+          # 200 (Slack) or 204 (Discord) means the platform accepted the message.
+          if [ "$code" != "200" ] && [ "$code" != "204" ]; then
+            echo "::error::Webhook delivery failed with HTTP $code"
+            exit 1
+          fi
