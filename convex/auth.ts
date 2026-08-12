@@ -305,26 +305,13 @@ export const deleteUser = mutation({
   },
 });
 
-// ─── Coach Queries ──────────────────────────────────────────────────
-
-export const listCoaches = query({
-  handler: async (ctx) => {
-    return await ctx.db
-      .query("users")
-      .withIndex("by_role", (q) => q.eq("role", "coach"))
-      .collect();
-  },
-});
-
-export const listClients = query({
-  args: { coachId: v.id("users") },
-  handler: async (ctx, args) => {
-    return await ctx.db
-      .query("users")
-      .withIndex("by_coachId", (q) => q.eq("coachId", args.coachId))
-      .collect();
-  },
-});
+// NOTE: Removed `listCoaches` and `listClients` (unauthenticated coach/client
+// PII enumeration — anyone with the public Convex URL could pull the full
+// coach or per-coach client lists; verified leaking live on prod). Neither was
+// referenced anywhere in the app or backend, so they're deleted outright
+// rather than guarded — same call as the `list`/`getByDate` removals in
+// sessions.ts (BUG-055/BUG-054). If admin tooling needs these, add scoped
+// variants that call `requireRole(["admin"])`.
 
 // ─── Admin Queries ──────────────────────────────────────────────────
 
