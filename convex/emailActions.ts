@@ -33,7 +33,11 @@ async function sendEmail(args: {
     return false
   }
 
-  const from = args.from || "GymPro <noreply@gympro.app>"
+  const from = args.from || process.env.RESEND_FROM_EMAIL
+  if (!from) {
+    console.error("RESEND_FROM_EMAIL not configured — set it to an address on a domain verified in Resend")
+    return false
+  }
 
   try {
     const response = await fetch("https://api.resend.com/emails", {
@@ -98,7 +102,7 @@ const WELCOME_EMAIL = (name: string) => `
         <li>Message your coach directly</li>
         <li>Monitor your progress and PRs</li>
       </ul>
-      <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://gympro.app'}/dashboard" class="button">Go to Dashboard</a>
+      <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://gym-project-azure.vercel.app'}/dashboard" class="button">Go to Dashboard</a>
     </div>
     <div class="footer">
       <p>© ${new Date().getFullYear()} GymPro. All rights reserved.</p>
@@ -165,7 +169,7 @@ const WEEKLY_SUMMARY_EMAIL = (name: string, stats: {
       </div>
 
       <p class="text">Keep up the great work! Your dedication is paying off.</p>
-      <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://gympro.app'}/user/dashboard" class="button">View Dashboard</a>
+      <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://gym-project-azure.vercel.app'}/user/dashboard" class="button">View Dashboard</a>
     </div>
     <div class="footer">
       <p>© ${new Date().getFullYear()} GymPro. All rights reserved.</p>
@@ -357,7 +361,7 @@ export const sendWorkoutReminder = action({
       <h1 class="title">Time to Workout! 💪</h1>
       <p class="text">Hi ${safeName},</p>
       <p class="text">Your coach ${safeCoachName} has a workout ready for you today. Don't let them down!</p>
-      <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://gympro.app'}/user/session" class="button">Start Workout</a>
+      <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://gym-project-azure.vercel.app'}/user/session" class="button">Start Workout</a>
     </div>
   </div>
 </body>

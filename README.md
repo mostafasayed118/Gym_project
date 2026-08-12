@@ -23,12 +23,35 @@ Convex functions, webhooks) enforces its own gate; no layer trusts another.
 | `CLERK_JWT_ISSUER` | Convex deployment env | Convex validates Clerk JWTs |
 | `CONVEX_BILLING_WEBHOOK_SECRET` | Convex deployment env | guards `subscriptions` webhook mutations |
 | `CRON_SECRET` / `ALERT_WEBHOOK_URL` | `.env.local` + Vercel | `/api/cron/health` bearer guard + outage alerts |
+| `RESEND_API_KEY` / `RESEND_FROM_EMAIL` | Convex deployment env | transactional emails (`emailActions.ts`); the from-address must be a Resend-verified domain |
+| `NEXT_PUBLIC_APP_URL` | `.env.local` + Convex env | base URL for email CTA links |
 
 ⚠️ **Known hardening items** (from the 2026 security audit): `auth.syncUser`
 still trusts anonymous calls as "webhooks" — an attacker can mint an admin account
 (proven live, the last critical in this project). `auth.getUserByClerkId`
 enumerates users anonymously, and the `push.*` lookups plus email/push actions
 are public server-only surfaces that should be `internalFunction`s.
+
+## 📧 Email & Push (Resend)
+
+Transactional email is sent through [Resend](https://resend.com) via `convex/emailActions.ts`.
+
+| Variable | Where | Purpose |
+|---|---|---|
+| `RESEND_API_KEY` | Convex deployment env | API key from https://resend.com/api-keys |
+| `RESEND_FROM_EMAIL` | Convex deployment env | From address, e.g. `GymPro <noreply@yourdomain.com>` — **the domain must be verified in Resend** |
+| `NEXT_PUBLIC_APP_URL` | Convex deployment env | Base URL for email CTA links (code falls back to `https://gym-project-azure.vercel.app`) |
+
+**Verifying a domain in Resend** (required — Resend rejects sends from unverified domains, and `gympro.app` is *not* owned):
+
+1. Add the domain in the Resend dashboard (e.g. `yourdomain.com`, or a sending subdomain like `mail.yourdomain.com`).
+2. Add these DNS records at your DNS provider:
+   - **SPF** — a TXT record at `@` (or the subdomain): `v=spf1 include:amazonses.com ~all`
+   - **DKIM** — three TXT records at `resend._domainkey`, `resend1._domainkey`, `resend2._domainkey`, each with the `p=<public key>` value Resend displays
+3. Wait for DNS propagation (minutes to a couple of hours), then click **Verify** in Resend.
+4. Set `RESEND_FROM_EMAIL` on the Convex deployment to an address on that domain (e.g. `GymPro <noreply@yourdomain.com>`).
+
+If no from-address is configured, `sendEmail` **fails closed** with a clear log line instead of attempting a send.
 
 ## Getting Started
 

@@ -131,7 +131,7 @@ export function LandingPageClient({ isAuthenticated }: LandingPageClientProps) {
             operatingSystem: "Web",
             description:
               "Professional gym management platform for coaches and clients. Track workouts, plans, and progress in real-time.",
-            url: "https://gympro.app",
+            url: "https://gym-project-azure.vercel.app",
             offers: {
               "@type": "Offer",
               price: "0",

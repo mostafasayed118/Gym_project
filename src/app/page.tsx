@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     title: "GymPro - Professional Gym Management Platform",
     description:
       "Track workouts, manage training plans, and connect with your coach in real-time.",
-    url: "https://gympro.app",
+    url: "https://gym-project-azure.vercel.app",
     images: [
       {
         url: "/og-image.png",
@@ -39,7 +39,7 @@ export const metadata: Metadata = {
     images: ["/og-image.png"],
   },
   alternates: {
-    canonical: "https://gympro.app",
+    canonical: "https://gym-project-azure.vercel.app",
   },
 }
 
