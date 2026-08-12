@@ -1,0 +1,134 @@
+# Weekly digest of the Uptime Monitor's probe results.
+#
+# Reads the last 7 days of scheduled probe runs of .github/workflows/uptime.yml
+# via the GitHub Actions API (no external storage), and reports:
+#   - total checks (5-minute probes)
+#   - successes / failures
+#   - uptime % and estimated downtime (failed slots × 5-minute interval)
+#
+# Only `schedule`-triggered runs are counted, so manual drills
+# (force_fail) don't skew the numbers. The report lands in the run's step
+# summary and, if ALERT_WEBHOOK_URL is set, is POSTed to chat.
+
+name: Weekly Uptime Digest
+
+on:
+  schedule:
+    # Monday 08:30 UTC — covers the previous rolling 7 days.
+    - cron: "30 8 * * 1"
+  workflow_dispatch: {}
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  digest:
+    name: Build weekly uptime report
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Fetch scheduled probe runs for the past 7 days
+        id: fetch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          SINCE=$(date -u -d '7 days ago' +%Y-%m-%dT%H:%M:%SZ)
+          NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          echo "window: $SINCE .. $NOW"
+          : > /tmp/runs.tsv
+          PAGE=1
+          while :; do
+            OUT=$(gh api "repos/${{ github.repository }}/actions/workflows/uptime.yml/runs" \
+              -f per_page=100 -f page=$PAGE \
+              -f event=schedule -f created="$SINCE..$NOW" \
+              --jq '.workflow_runs[] | [.created_at, (.conclusion // "in_progress")] | @tsv' || true)
+            if [ -z "$OUT" ]; then
+              break
+            fi
+            echo "$OUT" >> /tmp/runs.tsv
+            COUNT=$(echo "$OUT" | wc -l)
+            PAGE=$((PAGE + 1))
+            [ "$COUNT" -lt 100 ] && break
+          done
+          echo "runs_fetched=$(wc -l < /tmp/runs.tsv)" >> "$GITHUB_OUTPUT"
+
+      - name: Compute stats
+        id: stats
+        run: |
+          TOTAL=$(wc -l < /tmp/runs.tsv)
+          SUCCESS=$(awk -F'\t' '$2 == "success"' /tmp/runs.tsv | wc -l)
+          FAIL=$(awk -F'\t' '$2 == "failure"' /tmp/runs.tsv | wc -l)
+          OTHER=$((TOTAL - SUCCESS - FAIL))
+          DOWNTIME=$((FAIL * 5))
+          if [ "$TOTAL" -gt 0 ]; then
+            UPTIME=$(awk -v s="$SUCCESS" -v t="$TOTAL" 'BEGIN { printf "%.2f", s / t * 100 }')
+          else
+            UPTIME="n/a"
+          fi
+          echo "total=$TOTAL" >> "$GITHUB_OUTPUT"
+          echo "success=$SUCCESS" >> "$GITHUB_OUTPUT"
+          echo "fail=$FAIL" >> "$GITHUB_OUTPUT"
+          echo "other=$OTHER" >> "$GITHUB_OUTPUT"
+          echo "downtime=$DOWNTIME" >> "$GITHUB_OUTPUT"
+          echo "uptime=$UPTIME" >> "$GITHUB_OUTPUT"
+          echo "summary: total=$TOTAL success=$SUCCESS fail=$FAIL other=$OTHER downtime=${DOWNTIME}m uptime=$UPTIME%"
+
+      - name: Publish digest to step summary
+        if: always()
+        env:
+          TOTAL: ${{ steps.stats.outputs.total }}
+          SUCCESS: ${{ steps.stats.outputs.success }}
+          FAIL: ${{ steps.stats.outputs.fail }}
+          OTHER: ${{ steps.stats.outputs.other }}
+          DOWNTIME: ${{ steps.stats.outputs.downtime }}
+          UPTIME: ${{ steps.stats.outputs.uptime }}
+        run: |
+          END=$(date -u +'%b %d, %Y')
+          START=$(date -u -d '7 days ago' +'%b %d, %Y')
+          {
+            echo "### 🟢 GymPro Uptime Digest — $START → $END"
+            echo ""
+            echo "| Metric | Value |"
+            echo "|---|---|"
+            echo "| Total checks (5-min probes) | $TOTAL |"
+            echo "| Successful | $SUCCESS |"
+            echo "| Failed | $FAIL |"
+            echo "| Other (in progress/cancelled) | $OTHER |"
+            echo "| Uptime | $UPTIME% |"
+            echo "| Estimated downtime | $DOWNTIME min |"
+            echo ""
+            echo "> Downtime is estimated as failed probe slots × the 5-minute interval. Only scheduled probes are counted (manual drills excluded)."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Post digest to chat webhook
+        if: always()
+        env:
+          ALERT_WEBHOOK_URL: ${{ secrets.ALERT_WEBHOOK_URL }}
+          TOTAL: ${{ steps.stats.outputs.total }}
+          SUCCESS: ${{ steps.stats.outputs.success }}
+          FAIL: ${{ steps.stats.outputs.fail }}
+          OTHER: ${{ steps.stats.outputs.other }}
+          DOWNTIME: ${{ steps.stats.outputs.downtime }}
+          UPTIME: ${{ steps.stats.outputs.uptime }}
+        run: |
+          if [ -z "$ALERT_WEBHOOK_URL" ]; then
+            echo "ALERT_WEBHOOK_URL not set — digest is in the run summary only"
+            exit 0
+          fi
+          END=$(date -u +'%b %d, %Y')
+          START=$(date -u -d '7 days ago' +'%b %d, %Y')
+          msg="📊 *GymPro Uptime Digest — $START → $END*%0A%0AChecks: $TOTAL | OK: $SUCCESS | Failed: $FAIL | Other: $OTHER%0AUptime: $UPTIME% — downtime est: $DOWNTIME min"
+          if [[ "$ALERT_WEBHOOK_URL" == *"discord"* ]]; then
+            payload=$(jq -Rn --arg content "$msg" '{content:$content}')
+          else
+            payload=$(jq -Rn --arg text "$msg" '{text:$text}')
+          fi
+          code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 \
+            -X POST "$ALERT_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -d "$payload" || true)
+          echo "webhook status=$code"
+          if [ "$code" != "200" ] && [ "$code" != "204" ]; then
+            echo "::warning::Digest webhook delivery returned HTTP $code"
+          fi
