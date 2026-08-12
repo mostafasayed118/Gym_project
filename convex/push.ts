@@ -1,4 +1,4 @@
-import { query, mutation } from "./_generated/server";
+import { query, mutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 import { requireIdentity, requireSelf } from "./auth";
 import { checkMutationRateLimit } from "./rateLimit";
@@ -211,7 +211,10 @@ export const getPreferencesInternal = query({
   },
 });
 
-export const getUsersWithActivePlans = query({
+// Internal: listed every active-plan client's internal IDs to anyone with the
+// public Convex URL. Cron-only (used by sendWorkoutReminders via the internal
+// API), so it's now internalQuery — not reachable over HTTP.
+export const getUsersWithActivePlans = internalQuery({
   handler: async (ctx) => {
     const plans = await ctx.db
       .query("plans")
@@ -225,7 +228,9 @@ export const getUsersWithActivePlans = query({
   },
 });
 
-export const checkWorkoutScheduledToday = query({
+// Internal: answered schedule questions about arbitrary users' plans to
+// unauthenticated callers. Cron-only, so it's now internalQuery.
+export const checkWorkoutScheduledToday = internalQuery({
   args: {
     userId: v.id("users"),
     planId: v.id("plans"),
@@ -249,7 +254,9 @@ export const checkWorkoutScheduledToday = query({
   },
 });
 
-export const checkSessionToday = query({
+// Internal: exposed whether arbitrary users had sessions today. Cron-only,
+// so it's now internalQuery.
+export const checkSessionToday = internalQuery({
   args: { userId: v.id("users") },
   handler: async (ctx, args) => {
     // Use UTC date to avoid timezone issues

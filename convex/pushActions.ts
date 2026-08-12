@@ -1,6 +1,6 @@
 "use node";
 
-import { action, internalAction } from "./_generated/server";
+import { internalAction } from "./_generated/server";
 import { v } from "convex/values";
 import webPush from "web-push";
 
@@ -20,8 +20,13 @@ async function getInternal(): Promise<InternalApi> {
  */
 const REMINDER_CHUNK_SIZE = 25;
 
-/** Send a push notification to a single user */
-export const sendPushNotification = action({
+/**
+ * Send a push notification to a single user.
+ *
+ * Internal only: as a public action it let anyone spam pushes to any user
+ * (with user IDs leaked by the old getUsersWithActivePlans query).
+ */
+export const sendPushNotification = internalAction({
   args: {
     userId: v.id("users"),
     title: v.string(),
@@ -76,7 +81,7 @@ export const sendPushNotification = action({
  * Per-user push work happens in the chunk action so we don't burn the
  * coordinator's wall-clock budget on web-push round-trips.
  */
-export const sendWorkoutReminders = action({
+export const sendWorkoutReminders = internalAction({
   args: {},
   handler: async (ctx) => {
     const internal: InternalApi = await getInternal();
