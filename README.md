@@ -12,7 +12,7 @@ Convex functions, webhooks) enforces its own gate; no layer trusts another.
 | **Route gating** | ✅ Every protected page/layout calls `auth.protect()` plus the `requireAuth()` / `requireRole()` / `requireCoachAccess()` gates in `src/lib/auth-server.ts`. Unprotected resources under protected folders **fail CI** (`@clerk/eslint-plugin` `require-auth-protection`). |
 | **Convex data access** | ✅ Handlers call `requireIdentity()` / `requireSelf()` (`convex/auth.ts`) — e.g. coach roster/metrics queries reject callers other than the requesting coach (IDOR-closed). |
 | **Webhook / machine surfaces** | ✅ `subscriptions` mutations require the shared `CONVEX_BILLING_WEBHOOK_SECRET` ("Forbidden: invalid billing secret"); webhook-only lookups (`getAuthContextByClerkId`, Stripe lookups) are `internalFunction`s or secret-guarded. `/api/webhooks/*` is svix-signature verified. |
-| **Public by design** | ✅ Landing page + sign-in/sign-up, `/api/health` (deep probe), and `/api/cron/health` (bearer `CRON_SECRET`, alerts via `ALERT_WEBHOOK_URL`). |
+| **Public by design** | ✅ Landing page + sign-in/sign-up, `/api/health` (deep probe), and `/api/cron/health` (bearer `CRON_SECRET`, alerts via `ALERT_WEBHOOK_URL`). The cron endpoint is not scheduled on Vercel (Hobby plan allows only one cron/day) — hook an external uptime monitor (UptimeRobot / Healthchecks.io, free) to `https://gym-project-azure.vercel.app/api/health?deep=true` for real outage alerting. |
 
 **Required environment variables:**
 
