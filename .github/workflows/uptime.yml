@@ -12,6 +12,11 @@ name: Uptime Monitor
 #      ALERT_WEBHOOK_URL repository secret, a `{ "text": ... }` payload is
 #      POSTed to it on failure (same convention as /api/cron/health).
 #
+# Drill-testing: trigger with `workflow_dispatch` and `force_fail: true` to
+# deliberately fail the probe — the exact outage path (failure -> webhook
+# POST) runs without touching production. The webhook step prints
+# "webhook status=200" when delivery succeeds.
+#
 # Note: GitHub pauses scheduled workflows after 60 days of repository
 # inactivity. Any push/PR activity to this repo keeps the monitor running.
 
@@ -19,7 +24,13 @@ on:
   schedule:
     # Every 5 minutes — GitHub Actions' minimum interval.
     - cron: "*/5 * * * *"
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      force_fail:
+        description: "Drill: force the probe to fail so the alert path is exercised"
+        required: false
+        default: "false"
+        type: boolean
 
 permissions:
   contents: read
@@ -33,6 +44,11 @@ jobs:
       - name: Deep health probe
         id: probe
         run: |
+          if [ "${{ github.event.inputs.force_fail }}" = "true" ]; then
+            echo "::warning::DRILL MODE — deliberately failing the probe to test alert delivery"
+            echo "probe=failed" >> "$GITHUB_OUTPUT"
+            exit 1
+          fi
           code=$(curl -s -o /tmp/health.json -w "%{http_code}" --max-time 30 \
             "https://gym-project-azure.vercel.app/api/health?deep=true" || true)
           body=$(cat /tmp/health.json)
