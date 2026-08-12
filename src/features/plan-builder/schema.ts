@@ -5,6 +5,8 @@ export const exerciseSchema = z.object({
     .string()
     .min(1, "Exercise name is required")
     .max(100, "Exercise name is too long"),
+  // Optional ExerciseDB catalog id when picked from the synced catalog.
+  exerciseDbId: z.string().optional(),
   targetSets: z
     .number({ message: "Sets must be a number" })
     .int("Sets must be a whole number")

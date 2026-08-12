@@ -276,6 +276,7 @@ export function PlanBuilderForm({
           .map((ex) => ({
             name: ex.name,
             dayOfWeek: day.dayOfWeek,
+            exerciseDbId: ex.exerciseDbId ?? undefined,
             targetSets: ex.targetSets,
             targetReps: ex.targetReps,
             targetWeight: ex.targetWeight,

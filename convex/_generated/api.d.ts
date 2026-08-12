@@ -15,6 +15,7 @@ import type * as checkins from "../checkins.js";
 import type * as clerkActions from "../clerkActions.js";
 import type * as crons from "../crons.js";
 import type * as emailActions from "../emailActions.js";
+import type * as exerciseDb from "../exerciseDb.js";
 import type * as gamification from "../gamification.js";
 import type * as messages from "../messages.js";
 import type * as plans from "../plans.js";
@@ -40,6 +41,7 @@ declare const fullApi: ApiFromModules<{
   clerkActions: typeof clerkActions;
   crons: typeof crons;
   emailActions: typeof emailActions;
+  exerciseDb: typeof exerciseDb;
   gamification: typeof gamification;
   messages: typeof messages;
   plans: typeof plans;

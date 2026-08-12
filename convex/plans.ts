@@ -6,6 +6,8 @@ import { requireActiveSubscription } from "./subscriptions";
 const exerciseValidator = v.object({
   name: v.string(),
   dayOfWeek: v.string(),
+  // Optional ExerciseDB catalog id (when picked from the synced catalog).
+  exerciseDbId: v.optional(v.string()),
   targetSets: v.number(),
   targetReps: v.number(),
   targetWeight: v.number(),
@@ -155,6 +157,7 @@ export const createPlanWithItems = mutation({
         planId,
         dayOfWeek: ex.dayOfWeek,
         exerciseName: ex.name,
+        exerciseDbId: ex.exerciseDbId,
         targetSets: ex.targetSets,
         targetReps: ex.targetReps,
         targetWeight: ex.targetWeight,

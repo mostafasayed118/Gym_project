@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { GripVertical, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ExerciseSearch } from "./exercise-search";
 import type { PlanBuilderFormValues } from "./schema";
 
 interface ExerciseRowProps {
@@ -36,6 +37,7 @@ export function ExerciseRow({
   const weightError = errors.days?.[dayIndex]?.exercises?.[exerciseIndex]?.targetWeight;
 
   const name = useWatch({ control, name: `${prefix}.name` });
+  const exerciseDbId = useWatch({ control, name: `${prefix}.exerciseDbId` });
 
   return (
     <div
@@ -49,23 +51,32 @@ export function ExerciseRow({
         <GripVertical className="size-4" />
       </div>
 
-      {/* Exercise name */}
+      {/* Exercise name — searchable picker over the synced ExerciseDB catalog */}
       <div className="min-w-0 flex-1">
         <input type="hidden" {...control.register(`${prefix}.name`)} />
-        <Input
-          placeholder="Exercise name"
+        <input type="hidden" {...control.register(`${prefix}.exerciseDbId`)} />
+        <ExerciseSearch
           value={name ?? ""}
-          onChange={(e) => {
-            onFieldChange(`${prefix}.name`, e.target.value);
+          onSelect={(selected) => {
+            onFieldChange(`${prefix}.name`, selected.name);
+            onFieldChange(
+              `${prefix}.exerciseDbId`,
+              selected.exerciseDbId ?? "",
+            );
           }}
           className={cn(
-            "h-10 border-0 bg-transparent px-2 text-sm font-medium placeholder:text-zinc-600 focus-visible:ring-0",
-            nameError && "placeholder:text-red-400/50",
+            "h-10 rounded-lg bg-transparent px-2 focus-within:bg-zinc-950/40",
+            nameError && "border-red-400/30",
           )}
         />
         {nameError && (
           <p className="mt-0.5 px-2 text-[11px] text-red-400">
             {nameError.message}
+          </p>
+        )}
+        {exerciseDbId && (
+          <p className="mt-0.5 px-2 text-[10px] text-zinc-600">
+            From ExerciseDB catalog
           </p>
         )}
       </div>

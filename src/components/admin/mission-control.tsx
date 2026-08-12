@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Stagger } from "@/components/animations/stagger"
+import { ExerciseCatalogCard } from "@/components/admin/exercise-catalog-card"
 import {
   LineChart,
   Line,
@@ -52,6 +53,7 @@ export function MissionControl() {
   return (
     <div className="space-y-6">
       <HealthGrid />
+      <ExerciseCatalogCard />
       <div className="grid gap-6 lg:grid-cols-2">
         <ErrorRateWidget />
         <ActivityFeed />

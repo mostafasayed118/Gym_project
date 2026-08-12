@@ -25,6 +25,7 @@ Convex functions, webhooks) enforces its own gate; no layer trusts another.
 | `CRON_SECRET` / `ALERT_WEBHOOK_URL` | `.env.local` + Vercel | `/api/cron/health` bearer guard + outage alerts |
 | `GMAIL_USER` / `GMAIL_APP_PASSWORD` | Convex deployment env | transactional emails via Gmail SMTP (`emailActions.ts`) |
 | `NEXT_PUBLIC_APP_URL` | `.env.local` + Convex env | base URL for email CTA links |
+| `EXERCISEDB_API_KEY` | Convex deployment env | RapidAPI key for the ExerciseDB catalog sync (`convex/exerciseDb.ts`) |
 
 **Clerk → Convex JWT verification requires the Convex integration to be active in the Clerk dashboard** for the instance named by `CLERK_JWT_ISSUER` (dashboard.clerk.com → Convex integration → *Activate*). Clerk pre-maps the `aud: "convex"` claim into session tokens only when the integration is active — without it, `ctx.auth.getUserIdentity()` returns `null` for every signed-in user even with the provider configured below.
 
@@ -51,6 +52,26 @@ Transactional email is sent from a Gmail account over SMTP with `convex/emailAct
 3. Set it on the Convex deployment: `npx convex env set GMAIL_APP_PASSWORD <16-char-password> --deployment fleet-mouse-480`.
 
 Emails are sent from `GymPro <GMAIL_USER>`. If the credentials are missing or sending fails, `sendEmail` **fails closed** with a logged error instead of silently dropping mail.
+
+## 🏋️ Exercise Database (ExerciseDB)
+
+The [exercisedb/exercisedb-api](https://github.com/exercisedb/exercisedb-api) repo is a README/marketing repo — the actual product is the **hosted API** at https://exercisedb.dev (RapidAPI, `exercisedb.p.rapidapi.com`, key via `X-RapidAPI-Key`).
+
+GymPro integrates it with a **sync-once, serve-locally** strategy (`convex/exerciseDb.ts`):
+
+1. An admin triggers **Sync catalog** from Mission Control (admin dashboard) — or calls the `exerciseDb:syncCatalog` action directly.
+2. The action imports the full catalog (~11k exercises) into the Convex `exercises` table, one scheduled page-sync per page so the RapidAPI free tier isn't burst.
+3. All reads are served from Convex — search, body-part/equipment/target filters, and stats never touch the API again.
+
+Coaches pick exercises from the catalog in the plan builder (searchable picker, `src/features/plan-builder/exercise-search.tsx`); the picked ExerciseDB id is stored on `planItems.exerciseDbId` so GIFs / instructions can be rendered later. Typing a name that isn't in the catalog still works as a custom exercise.
+
+**Setup:**
+
+| Variable | Where | Purpose |
+|---|---|---|
+| `EXERCISEDB_API_KEY` | Convex deployment env | RapidAPI key for `exercisedb.p.rapidapi.com` — get one (free tier) at https://rapidapi.com/justin-WFnsXH_t6/api/exercisedb |
+
+Set it with `npx convex env set EXERCISEDB_API_KEY <key> --deployment fleet-mouse-480`, then hit **Sync catalog** in Mission Control. The card shows catalog size, body-part count, last sync time, and whether the key is configured. GIF URLs in the API rotate periodically for unauthenticated content — treat `gifUrl` as best-effort, not a permanent asset.
 
 ## Getting Started
 

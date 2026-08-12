@@ -48,12 +48,37 @@ export default defineSchema({
     planId: v.id("plans"),
     dayOfWeek: v.string(),
     exerciseName: v.string(),
+    // Optional ExerciseDB catalog id when the exercise was picked from the
+    // synced catalog (see convex/exerciseDb.ts). Lets the UI render the GIF,
+    // muscle-group, and instructions for exercises picked from the catalog.
+    exerciseDbId: v.optional(v.string()),
     targetSets: v.number(),
     targetReps: v.number(),
     targetWeight: v.number(),
   })
     .index("by_planId", ["planId"])
     .index("by_planId_dayOfWeek", ["planId", "dayOfWeek"]),
+
+  // ExerciseDB catalog, synced in bulk by an admin (convex/exerciseDb.ts).
+  // The catalog is imported into Convex so reads never hit the paid RapidAPI
+  // endpoint per-request — search is served entirely from this table.
+  exercises: defineTable({
+    exerciseDbId: v.string(),
+    name: v.string(),
+    bodyPart: v.string(),
+    equipment: v.string(),
+    target: v.string(),
+    secondaryMuscles: v.array(v.string()),
+    gifUrl: v.optional(v.string()),
+    instructions: v.optional(v.array(v.string())),
+    // Lowercased name for case-insensitive prefix search.
+    searchTerms: v.string(),
+  })
+    .index("by_exerciseDbId", ["exerciseDbId"])
+    .index("by_searchTerms", ["searchTerms"])
+    .index("by_bodyPart", ["bodyPart"])
+    .index("by_equipment", ["equipment"])
+    .index("by_target", ["target"]),
 
   sessions: defineTable({
     clientId: v.id("users"),
