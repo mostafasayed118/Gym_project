@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useUser } from "@clerk/nextjs";
 import { useQuery } from "convex/react";
 import { api } from "@convex/_generated/api";
 import { ChevronsUpDown, Dumbbell, Loader2, Search } from "lucide-react";
@@ -37,13 +38,63 @@ export function ExerciseSearch({
   placeholder = "Exercise name",
   className,
 }: ExerciseSearchProps) {
+  const { user: clerkUser } = useUser();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [debounced, setDebounced] = useState("");
   const [bodyPartFilter, setBodyPartFilter] = useState<string | null>(null);
   const [equipmentFilter, setEquipmentFilter] = useState<string | null>(null);
   const [targetFilter, setTargetFilter] = useState<string | null>(null);
+  const [filtersHydrated, setFiltersHydrated] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Per-coach browsing context: the last-used filter selections are stored in
+  // localStorage keyed by Clerk user id, so reopening the picker (or another
+  // row's picker on the same page) remembers them. Filters intentionally
+  // survive selections — a coach building a chest day wants "chest" to stick.
+  const storageKey = clerkUser
+    ? `gympro:exercise-picker-filters:${clerkUser.id}`
+    : null;
+
+  // Re-hydrate on every open so multiple pickers on the page stay in sync.
+  function openPicker() {
+    if (storageKey) {
+      try {
+        const raw = window.localStorage.getItem(storageKey);
+        if (raw) {
+          const parsed = JSON.parse(raw) as {
+            bodyPart?: string | null;
+            equipment?: string | null;
+            target?: string | null;
+          };
+          if (parsed.bodyPart) setBodyPartFilter(parsed.bodyPart);
+          if (parsed.equipment) setEquipmentFilter(parsed.equipment);
+          if (parsed.target) setTargetFilter(parsed.target);
+        }
+      } catch {
+        // Ignore corrupted storage / private mode — fall back to no filters.
+      }
+    }
+    setFiltersHydrated(true);
+    setOpen(true);
+  }
+
+  // Persist the current selections whenever they change (post-hydration).
+  useEffect(() => {
+    if (!storageKey || !filtersHydrated) return;
+    try {
+      window.localStorage.setItem(
+        storageKey,
+        JSON.stringify({
+          bodyPart: bodyPartFilter,
+          equipment: equipmentFilter,
+          target: targetFilter,
+        }),
+      );
+    } catch {
+      // Ignore storage errors (private mode / quota).
+    }
+  }, [storageKey, filtersHydrated, bodyPartFilter, equipmentFilter, targetFilter]);
 
   // Debounce the query so we don't fire a Convex search per keystroke.
   useEffect(() => {
@@ -93,9 +144,7 @@ export function ExerciseSearch({
     setOpen(false);
     setQuery("");
     setDebounced("");
-    setBodyPartFilter(null);
-    setEquipmentFilter(null);
-    setTargetFilter(null);
+    // Filters intentionally persist across selections (see openPicker).
   }
 
   // Enter with no highlighted/selected item commits free text.
@@ -114,7 +163,7 @@ export function ExerciseSearch({
           type="button"
           onClick={() => {
             setQuery("");
-            setOpen(true);
+            openPicker();
           }}
           className="flex h-10 w-full items-center gap-2 rounded-lg border border-transparent px-2 text-sm font-medium text-zinc-200 placeholder:text-zinc-600 transition-colors hover:bg-zinc-900/40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-700"
         >
