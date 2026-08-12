@@ -28,21 +28,21 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Fetch scheduled probe runs for the past 7 days
+      - name: Fetch probe runs for the past 7 days
         id: fetch
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           SINCE=$(date -u -d '7 days ago' +%Y-%m-%dT%H:%M:%SZ)
-          NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-          echo "window: $SINCE .. $NOW"
+          echo "window: $SINCE .. $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          # NOTE: `-f` params on a GET 404 with gh's REST client — query
+          # params must live in the URL. We fetch all recent runs and filter
+          # client-side to keep this robust.
           : > /tmp/runs.tsv
           PAGE=1
           while :; do
-            OUT=$(gh api "repos/${{ github.repository }}/actions/workflows/uptime.yml/runs" \
-              -f per_page=100 -f page=$PAGE \
-              -f event=schedule -f created="$SINCE..$NOW" \
-              --jq '.workflow_runs[] | [.created_at, (.conclusion // "in_progress")] | @tsv' || true)
+            OUT=$(gh api "repos/${{ github.repository }}/actions/workflows/uptime.yml/runs?per_page=100&page=$PAGE" \
+              --jq '.workflow_runs[] | [.created_at, .event, (.conclusion // "in_progress")] | @tsv' || true)
             if [ -z "$OUT" ]; then
               break
             fi
@@ -51,14 +51,16 @@ jobs:
             PAGE=$((PAGE + 1))
             [ "$COUNT" -lt 100 ] && break
           done
-          echo "runs_fetched=$(wc -l < /tmp/runs.tsv)" >> "$GITHUB_OUTPUT"
+          # Keep only scheduled probes within the last 7 days (drills excluded).
+          awk -F'\t' -v since="$SINCE" '$2 == "schedule" && $1 >= since' /tmp/runs.tsv > /tmp/sched.tsv
+          echo "runs_fetched=$(wc -l < /tmp/sched.tsv)" >> "$GITHUB_OUTPUT"
 
       - name: Compute stats
         id: stats
         run: |
-          TOTAL=$(wc -l < /tmp/runs.tsv)
-          SUCCESS=$(awk -F'\t' '$2 == "success"' /tmp/runs.tsv | wc -l)
-          FAIL=$(awk -F'\t' '$2 == "failure"' /tmp/runs.tsv | wc -l)
+          TOTAL=$(wc -l < /tmp/sched.tsv)
+          SUCCESS=$(awk -F'\t' '$3 == "success"' /tmp/sched.tsv | wc -l)
+          FAIL=$(awk -F'\t' '$3 == "failure"' /tmp/sched.tsv | wc -l)
           OTHER=$((TOTAL - SUCCESS - FAIL))
           DOWNTIME=$((FAIL * 5))
           if [ "$TOTAL" -gt 0 ]; then
@@ -99,6 +101,10 @@ jobs:
             echo "| Estimated downtime | $DOWNTIME min |"
             echo ""
             echo "> Downtime is estimated as failed probe slots × the 5-minute interval. Only scheduled probes are counted (manual drills excluded)."
+            if [ "$TOTAL" = "0" ]; then
+              echo ""
+              echo "> ⚠️ No scheduled probe runs found in this window — GitHub's cron may not have fired (a known Actions scheduling issue). Check the Uptime Monitor workflow's run list."
+            fi
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Post digest to chat webhook
