@@ -184,7 +184,7 @@ export const unsubscribe = mutation({
 
 // ─── Internal Queries (for cron jobs) ───────────────────────────────
 
-export const getSubscriptionInternal = query({
+export const getSubscriptionInternal = internalQuery({
   args: { userId: v.id("users") },
   handler: async (ctx, args) => {
     return await ctx.db
@@ -194,7 +194,7 @@ export const getSubscriptionInternal = query({
   },
 });
 
-export const getPreferencesInternal = query({
+export const getPreferencesInternal = internalQuery({
   args: { userId: v.id("users") },
   handler: async (ctx, args) => {
     const prefs = await ctx.db
