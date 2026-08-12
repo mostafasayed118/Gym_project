@@ -42,6 +42,7 @@ export function ExerciseSearch({
   const [debounced, setDebounced] = useState("");
   const [bodyPartFilter, setBodyPartFilter] = useState<string | null>(null);
   const [equipmentFilter, setEquipmentFilter] = useState<string | null>(null);
+  const [targetFilter, setTargetFilter] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Debounce the query so we don't fire a Convex search per keystroke.
@@ -57,16 +58,18 @@ export function ExerciseSearch({
           query: debounced || undefined,
           bodyPart: bodyPartFilter || undefined,
           equipment: equipmentFilter || undefined,
+          target: targetFilter || undefined,
           limit: 12,
         }
       : "skip",
   );
 
-  // Distinct body parts / equipment for the filter chips. Only fetched while
-  // the picker is open — these scan the catalog, so we don't want them running
-  // for every ExerciseRow on the page.
+  // Distinct body parts / equipment / target muscles for the filter chips.
+  // Only fetched while the picker is open — these scan the catalog, so we
+  // don't want them running for every ExerciseRow on the page.
   const bodyParts = useQuery(api.exerciseDb.listBodyParts, open ? {} : "skip");
   const equipmentList = useQuery(api.exerciseDb.listEquipment, open ? {} : "skip");
+  const targets = useQuery(api.exerciseDb.listTargets, open ? {} : "skip");
 
   // Close when clicking outside the widget.
   useEffect(() => {
@@ -92,6 +95,7 @@ export function ExerciseSearch({
     setDebounced("");
     setBodyPartFilter(null);
     setEquipmentFilter(null);
+    setTargetFilter(null);
   }
 
   // Enter with no highlighted/selected item commits free text.
@@ -139,13 +143,18 @@ export function ExerciseSearch({
           <FilterChips
             bodyParts={bodyParts ?? []}
             equipmentList={equipmentList ?? []}
+            targets={targets ?? []}
             bodyPartFilter={bodyPartFilter}
             equipmentFilter={equipmentFilter}
+            targetFilter={targetFilter}
             onToggleBodyPart={(v) =>
               setBodyPartFilter((cur) => (cur === v ? null : v))
             }
             onToggleEquipment={(v) =>
               setEquipmentFilter((cur) => (cur === v ? null : v))
+            }
+            onToggleTarget={(v) =>
+              setTargetFilter((cur) => (cur === v ? null : v))
             }
           />
           <CommandList>
@@ -159,7 +168,7 @@ export function ExerciseSearch({
               <CommandEmpty>
                 {debounced.trim().length > 0
                   ? `No matches for "${debounced}". Press Enter to use it as a custom exercise.`
-                  : bodyPartFilter || equipmentFilter
+                  : bodyPartFilter || equipmentFilter || targetFilter
                     ? "No exercises match this filter — clear a chip or type a custom name."
                     : "Catalog is empty — sync it from Mission Control, or type a custom name."}
               </CommandEmpty>
@@ -206,27 +215,34 @@ export function ExerciseSearch({
 interface FilterChipsProps {
   bodyParts: string[];
   equipmentList: string[];
+  targets: string[];
   bodyPartFilter: string | null;
   equipmentFilter: string | null;
+  targetFilter: string | null;
   onToggleBodyPart: (value: string) => void;
   onToggleEquipment: (value: string) => void;
+  onToggleTarget: (value: string) => void;
 }
 
 /**
- * Horizontal chip rows for browsing the catalog by muscle group / equipment.
- * Toggling a chip filters `exerciseDb.search` results; clicking it again
- * clears the filter. Chips render as soon as the distinct lists load — until
- * then the row stays out of the way (no layout jump).
+ * Horizontal chip rows for browsing the catalog by muscle group / equipment /
+ * primary target muscle. Toggling a chip filters `exerciseDb.search` results;
+ * clicking it again clears the filter. Chips render as soon as the distinct
+ * lists load — until then the rows stay out of the way (no layout jump).
  */
 function FilterChips({
   bodyParts,
   equipmentList,
+  targets,
   bodyPartFilter,
   equipmentFilter,
+  targetFilter,
   onToggleBodyPart,
   onToggleEquipment,
+  onToggleTarget,
 }: FilterChipsProps) {
-  if (bodyParts.length === 0 && equipmentList.length === 0) return null;
+  if (bodyParts.length === 0 && equipmentList.length === 0 && targets.length === 0)
+    return null;
 
   const row = (label: string, values: string[], active: string | null, onToggle: (v: string) => void) =>
     values.length > 0 ? (
@@ -260,6 +276,7 @@ function FilterChips({
   return (
     <>
       {row("Body", bodyParts, bodyPartFilter, onToggleBodyPart)}
+      {row("Muscle", targets, targetFilter, onToggleTarget)}
       {row("Gear", equipmentList, equipmentFilter, onToggleEquipment)}
     </>
   );
