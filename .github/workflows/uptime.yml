@@ -11,6 +11,16 @@ name: Uptime Monitor
 #   2. If a Slack/Discord/Teams-style incoming webhook is stored as the
 #      ALERT_WEBHOOK_URL repository secret, a `{ "text": ... }` payload is
 #      POSTed to it on failure (same convention as /api/cron/health).
+#   3. If a Healthchecks.io check's ping URL is stored as the
+#      HEALTHCHECKS_PING_URL repository secret, this job pings it on every
+#      run (success ping, or /fail on probe failure). Healthchecks then
+#      alerts from its own servers — including when this monitor stops
+#      pinging entirely — so alerting doesn't depend on GitHub's cron.
+#
+# NOTE: GitHub's scheduled cron for this workflow has been observed NOT to
+# fire (known Actions issue). For production alerting, prefer an external
+# active monitor (UptimeRobot/Healthchecks); this workflow is the best-effort
+# layer.
 #
 # Drill-testing: trigger with `workflow_dispatch` and `force_fail: true` to
 # deliberately fail the probe — the exact outage path (failure -> webhook
@@ -63,6 +73,31 @@ jobs:
             exit 1
           fi
           echo "probe=ok" >> "$GITHUB_OUTPUT"
+
+      - name: Ping Healthchecks.io (dead-man's switch)
+        if: always()
+        env:
+          HEALTHCHECKS_PING_URL: ${{ secrets.HEALTHCHECKS_PING_URL }}
+        run: |
+          if [ -z "$HEALTHCHECKS_PING_URL" ]; then
+            echo "HEALTHCHECKS_PING_URL not set — skipping"
+            exit 0
+          fi
+          # Success -> plain ping; probe failure -> /fail (Healthchecks flips
+          # to DOWN and alerts from its own servers). If this monitor stops
+          # pinging entirely (e.g. GitHub's cron drops the run), the check
+          # goes DOWN after the grace period — so alerting never depends on
+          # GitHub's scheduler, only best-effort pings do.
+          if [ "${{ steps.probe.outcome }}" = "success" ]; then
+            PING_URL="$HEALTHCHECKS_PING_URL"
+          else
+            PING_URL="${HEALTHCHECKS_PING_URL%/}/fail"
+          fi
+          code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 "$PING_URL" || true)
+          echo "healthchecks ping status=$code"
+          if [ "$code" != "200" ]; then
+            echo "::warning::Healthchecks ping returned HTTP $code"
+          fi
 
       - name: Send webhook alert on failure
         if: failure()
